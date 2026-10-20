@@ -93,7 +93,7 @@ jobs:
 
       - name: Install frontend dependencies
         working-directory: frontend
-        run: npm install
+        run: npm ci
 
       - name: Audit frontend dependencies (high and critical)
         working-directory: frontend
@@ -146,7 +146,7 @@ jobs:
 
       - name: Install frontend dependencies
         working-directory: frontend
-        run: npm install
+        run: npm ci
 
       - name: Run frontend tests
         working-directory: frontend
