@@ -100,6 +100,8 @@ Stop the stack with Ctrl+C, then run docker compose down. To remove the demo dat
 
 ## Tests and security checks
 
+Dependabot is configured to propose regular updates for npm dependencies in `frontend/` and Python dependencies in `backend/`.
+
 Backend, from backend/:
 
 ```bash
@@ -114,10 +116,10 @@ npm ci
 npm test -- --run
 npm run lint
 npm run build
-npm audit --audit-level=moderate
+npm run audit:security
 ```
 
-GitHub Actions runs backend tests and model-schema registration, pip-audit, frontend tests/lint/build, the frontend dependency audit, and a Docker Compose smoke test. The current recorded npm audit reports 14 vulnerabilities (6 moderate, 6 high, 2 critical) and fails CI; see [the engineering review](ENGINEERING_REVIEW.md). A successful build or test run does not establish that the app is secure or production-ready. Review the latest [Actions runs](https://github.com/Emmy1-tech/CloudPulse/actions) for current results and remaining risks.
+GitHub Actions runs backend tests and model-schema registration, pip-audit, frontend tests/lint/build, a dedicated frontend npm audit job (`npm run audit:security`), and a Docker Compose smoke test. The previous recorded npm audit reported 14 affected dependency findings (6 moderate, 6 high, 2 critical). The high/critical audit gate will continue to fail until the manifest and lockfile are upgraded and verified; see [the engineering review](ENGINEERING_REVIEW.md). A successful build or test run does not establish that the app is secure or production-ready. Review the latest [Actions runs](https://github.com/Emmy1-tech/CloudPulse/actions) for current results and remaining risks.
 
 ### Regression scenario: fresh SQLite test database
 
