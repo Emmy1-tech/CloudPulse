@@ -1,4 +1,5 @@
 import axios from 'axios';
+import { demoApi } from './demoApi';
 import { Endpoint, EndpointCreate, EndpointStats, Incident, MonitoringResult } from '../types';
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
@@ -62,8 +63,6 @@ const backendEndpointsApi = {
   },
 };
 
-
-import { demoApi } from './demoApi'
 
 export const endpointsApi = import.meta.env.VITE_DEMO_MODE === 'true' ? demoApi : backendEndpointsApi
 
