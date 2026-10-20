@@ -1,6 +1,6 @@
 # CloudPulse Engineering Review
 
-**Review date:** 2026-10-20  
+**Review date:** 2026-10-19  
 **Reviewed default branch baseline:** [884fcbf](https://github.com/Emmy1-tech/CloudPulse/commit/884fcbf6cfb90173625fdb9ecc7c44959d5173f5)  
 **Working changes:** [PR #2](https://github.com/Emmy1-tech/CloudPulse/pull/2) — intentionally not merged while the frontend dependency audit fails.
 
@@ -8,7 +8,7 @@
 
 CloudPulse is a useful full-stack learning/demo project, but the baseline was not production-ready. Confirmed issues included an incomplete Docker Compose build path, a Python runtime mismatch, a database initialization gap in the container workflow, frontend API calls that ignored the configured base URL, overly permissive CORS, a process-only health response, and known npm dependency advisories.
 
-The PR addresses the deployment workflow, frontend API client, CORS defaults, and database-aware health reporting. On code commit [b2d1c69](https://github.com/Emmy1-tech/CloudPulse/commit/b2d1c6955bf67a324cbc3ba568a63f8f42f5127c), GitHub Actions verified 40 backend tests, frontend tests/lint/build, the Python dependency audit, and the Docker Compose smoke test. The frontend dependency audit remains the confirmed blocker; the PR is deliberately not merged.
+The PR addresses the deployment workflow, frontend API client, CORS defaults, database-aware health reporting, and debug-mode defaults. On code commit [4711c65](https://github.com/Emmy1-tech/CloudPulse/commit/4711c656e53d66c14e1cd96a98c148b43612ee25), GitHub Actions verified 41 backend tests, frontend tests/lint/build, the Python dependency audit, and the Docker Compose smoke test. The frontend dependency audit remains the confirmed blocker; the PR is deliberately not merged.
 
 ## Prioritized findings
 
@@ -16,9 +16,9 @@ The PR addresses the deployment workflow, frontend API client, CORS defaults, an
 |---|---|---|---|
 | **P1 — security** | `npm audit` reported 14 vulnerabilities: 6 moderate, 6 high, 2 critical. The report includes direct production dependency `react-router-dom@6.30.6`, direct dev dependencies `vite@5.4.21`, `vitest@1.6.1`, `tailwindcss@3.4.19`, and vulnerable transitive packages. | Locked dependency tree contains advisories. Several full fixes require major upgrades; blind `npm audit fix --force` could break Vite, Tailwind, Vitest, and router configuration. | **Unresolved; CI audit fails.** Keep PR open. |
 | **P1 — security** | `backend/app/api/endpoints.py` lists and mutates endpoint records without an authenticated principal or user-scoped queries. The default-user path is hard-coded. | Authentication/authorization are not implemented; any client that can reach the API can access or change records. | **Unresolved by design.** README warns against network exposure; loopback-only Compose binding reduces accidental exposure but is not access control. |
-| **P1 — deployment** | Compose specified `build: ./frontend`, but the default branch had no `frontend/Dockerfile`. Backend image used Python 3.14 while CI/documentation used Python 3.12. Compose launched Uvicorn without initializing SQLite tables. | The demo stack could not build the frontend image from the checked-in tree and the API could fail on first database use. | **Fixed in PR #2; Docker smoke job passed on code commit b2d1c69.** |
+| **P1 — deployment** | Compose specified `build: ./frontend`, but the default branch had no `frontend/Dockerfile`. Backend image used Python 3.14 while CI/documentation used Python 3.12. Compose launched Uvicorn without initializing SQLite tables. | The demo stack could not build the frontend image from the checked-in tree and the API could fail on first database use. | **Fixed in PR #2; Docker smoke job passed on code commit 4711c65.** |
 | **P2 — frontend runtime** | `Dashboard.tsx` used hard-coded `http://localhost:8000` URLs for incidents and statistics instead of the Axios client configured by `VITE_API_URL`. | Deployments with a non-default API origin would partially fail even if the main API client worked. | **Fixed in PR #2** and a regression test was added. |
-| **P2 — browser boundary** | Baseline CORS used `allow_origins=["*"]` with `allow_credentials=True`. | This is broader than needed for a local demo and makes credential policy unclear. CORS is not authentication. | **Changed and tested in PR #2** on code commit b2d1c69: configurable local origins, credentials disabled, explicit methods/headers, and two CORS regression tests. |
+| **P2 — browser boundary** | Baseline CORS used `allow_origins=["*"]` with `allow_credentials=True`. | This is broader than needed for a local demo and makes credential policy unclear. CORS is not authentication. | **Changed and tested in PR #2** on code commit 4711c65: configurable local origins, credentials disabled, explicit methods/headers, and two CORS regression tests. |
 | **P2 — readiness semantics** | Baseline `GET /health` always returned `{"status":"healthy"}` without checking database connectivity. | The response could be healthy while database operations were failing. | **Changed in PR #2** to execute `SELECT 1` and return HTTP 503 on SQLAlchemy database errors; regression tests added. |
 | **P2 — test confidence** | Existing backend tests use an isolated in-memory SQLite engine, create model tables, and override `get_db` with request-scoped sessions. | This fixed the earlier `no such table` failures in tests, but passing unit/API tests alone does not prove the container starts or dependencies are secure. | **Verified on baseline:** 36 backend tests passed. CI now includes container smoke coverage and the frontend audit. |
 | **P3 — product scope** | `backend/app/api/monitoring.py` generates random/specified outcomes and simulated 50–500 ms response times; no outbound request is made. `check_interval` is stored but no scheduler uses it. | Uptime and response-time figures are demo metrics, not real service telemetry. | **Documented, not a defect for a clearly labelled demo.** Real probes and scheduling remain future work. |
@@ -64,11 +64,11 @@ The audit's counts represent affected dependency nodes/advisories in the lockfil
 
 Commands run by GitHub Actions (not on the user's local machine):
 
-- `python -m pytest tests/ -v` — **40 passed in 0.72s** on code commit b2d1c69, including two CORS tests and two database-readiness tests.
+- `python -m pytest tests/ -v` — **41 passed in 0.66s** on code commit 4711c65, including two CORS tests, two database-readiness tests, and the safe debug-default test.
 - `pip-audit` — **No known vulnerabilities found** in the installed backend dependency set on the recorded CI run.
-- `npm test -- --run`, `npm run lint`, `npm run build` — passed on code commit b2d1c69.
-- `docker compose config --quiet`, `docker compose up --build --detach`, and HTTP checks against `/health` and the frontend — passed on code commit b2d1c69; the health endpoint queried SQLite before reporting ready.
-- `npm audit --json` — **failed**, 14 findings (6 moderate, 6 high, 2 critical). The current audit job continues to fail intentionally until dependency remediation is verified. See [the CI run](https://github.com/Emmy1-tech/CloudPulse/actions/runs/39355126687).
+- `npm test -- --run`, `npm run lint`, `npm run build` — passed on code commit 4711c65.
+- `docker compose config --quiet`, `docker compose up --build --detach`, and HTTP checks against `/health` and the frontend — passed on code commit 4711c65; the health endpoint queried SQLite before reporting ready.
+- `npm audit --json` — **failed**, 14 findings (6 moderate, 6 high, 2 critical). The current audit job continues to fail intentionally until dependency remediation is verified. See [the latest CI run](https://github.com/Emmy1-tech/CloudPulse/actions/runs/39355343006).
 
 Local reproduction attempt: `git clone https://github.com/Emmy1-tech/CloudPulse.git` failed because the execution container could not resolve `github.com`. I did not claim local test execution; GitHub Actions logs are the source of the test results above.
 
@@ -90,7 +90,7 @@ Local reproduction attempt: `git clone https://github.com/Emmy1-tech/CloudPulse.
 
 **Implementation →** Added the missing container build definition and smoke coverage, aligned Python versions, initialized demo schema before startup, routed requests through the configured API client, restricted CORS defaults, and added database-aware readiness with regression tests.
 
-**Verification →** GitHub Actions verified the Docker stack and existing test/lint/build jobs on earlier PR commits. New CORS and readiness tests are awaiting confirmation on the latest head. The explicit npm audit exposed 14 vulnerabilities and correctly leaves the PR blocked.
+**Verification →** GitHub Actions verified 41 backend tests, frontend tests/lint/build, the Python audit, and the Docker stack on code commit 4711c65. The explicit npm audit exposed 14 vulnerabilities and correctly leaves the PR blocked.
 
 **Trade-offs →** The container still uses SQLite and demo-time `create_all`; local-origin defaults and loopback binding support learning but are not a production deployment design. Major frontend dependency migrations are deferred until the lockfile can be updated and tested safely.
 
