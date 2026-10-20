@@ -21,9 +21,12 @@ vi.mock('../services/api', () => ({
 }))
 
 describe('Dashboard', () => {
-  it('renders loading state initially', () => {
+  it('renders loading state initially', async () => {
     render(<Dashboard />)
     expect(screen.getByText('Loading...')).toBeInTheDocument()
+    await waitFor(() => {
+      expect(screen.getByText('No endpoints configured')).toBeInTheDocument()
+    })
   })
 
   it('renders empty state when no endpoints', async () => {
