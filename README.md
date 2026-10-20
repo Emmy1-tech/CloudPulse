@@ -119,7 +119,7 @@ npm run build
 npm run audit:security
 ```
 
-GitHub Actions runs backend tests and model-schema registration, pip-audit, frontend tests/lint/build, a dedicated frontend npm audit job (`npm run audit:security`), and a Docker Compose smoke test. The previous recorded npm audit reported 14 affected dependency findings (6 moderate, 6 high, 2 critical). The high/critical audit gate will continue to fail until the manifest and lockfile are upgraded and verified; see [the engineering review](ENGINEERING_REVIEW.md). A successful build or test run does not establish that the app is secure or production-ready. Review the latest [Actions runs](https://github.com/Emmy1-tech/CloudPulse/actions) for current results and remaining risks.
+GitHub Actions runs backend tests and model-schema registration, pip-audit, frontend tests/lint/build, a dedicated frontend npm audit job (`npm run audit:security`), and a Docker Compose smoke test. The frontend manifest and lockfile have been upgraded to remediate the previously reported 14 npm audit findings, and the audit threshold remains high/critical rather than being suppressed. See [the engineering review](ENGINEERING_REVIEW.md) and the latest [Actions runs](https://github.com/Emmy1-tech/CloudPulse/actions) for CI status. A successful build or test run does not by itself establish that the app is production-ready.
 
 ### Regression scenario: fresh SQLite test database
 
