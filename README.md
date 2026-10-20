@@ -1,259 +1,158 @@
 # CloudPulse
 
-**CloudPulse** is a service monitoring and incident management dashboard built as a portfolio project for entry-level software engineering roles.
+**CloudPulse** is a full-stack service-monitoring and incident-management dashboard maintained by **EMMY**.
 
-## 🎯 Project Overview
+It provides a local demonstration environment for registering endpoints, running simulated health checks, reviewing monitoring history, and managing incidents.
 
-CloudPulse allows users to:
-- Register HTTP endpoints to monitor
-- Trigger simulated health checks
-- View monitoring history and statistics
-- Track incidents when services fail
-- Resolve incidents and track uptime
+## Features
 
-**Tech Stack:**
-- **Backend:** Python 3.14, FastAPI, SQLite, Pydantic
-- **Frontend:** React 18, TypeScript, Vite, Tailwind CSS
-- **Testing:** pytest (backend)
-- **DevOps:** Docker, GitHub Actions
+- Create, view, update, and delete monitored endpoints.
+- Trigger simulated health checks and store results in SQLite.
+- Review success rates, uptime estimates, response times, and check history.
+- Create incidents when simulated checks fail and prevent duplicate open incidents.
+- Acknowledge and resolve incidents.
+- View monitoring and incident information in a React dashboard.
+- Explore the REST API through FastAPI's interactive documentation.
 
-**Budget:** $0 (completely free development and deployment)
+> **Monitoring is simulated.** The application does not make real health-check requests to the configured external URLs. Do not use its metrics as production monitoring data.
 
-## 🚀 Quick Start
+## Technology stack
 
-### Prerequisites
-- Python 3.14+
-- Node.js 20+
-- npm
+- **Backend:** Python 3.12+, FastAPI, SQLAlchemy, SQLite, Pydantic
+- **Frontend:** React, TypeScript, Vite
+- **Tests:** pytest, Vitest
+- **CI:** GitHub Actions
+- **Optional container workflow:** Docker and Docker Compose
 
-### Installation
+## Prerequisites
 
-1. **Clone the repository**
-```bash
-cd cloudpulse-new
+- Python 3.12 or newer within the supported dependency range
+- Node.js 20 and npm
+- Git
+
+## Run locally
+
+Open two terminals from the repository root.
+
+### 1. Set up the backend
+
+**Windows PowerShell:**
+
+```powershell
+cd backend
+py -3.12 -m venv venv
+.\venv\Scripts\Activate.ps1
+python -m pip install --upgrade pip
+python -m pip install -r requirements.txt -r requirements-dev.txt
+Copy-Item .env.example .env
+python -c "from app.database import init_db; init_db()"
+uvicorn app.main:app --reload --host 127.0.0.1 --port 8000
 ```
 
-2. **Backend Setup**
+**macOS / Linux:**
+
 ```bash
 cd backend
-python -m venv venv
-# Windows:
-venv\Scripts\activate
-# Git Bash:
-source venv/Scripts/activate
-
-pip install -r requirements.txt
-pip install -r requirements-dev.txt
-
+python3.12 -m venv venv
+source venv/bin/activate
+python -m pip install --upgrade pip
+python -m pip install -r requirements.txt -r requirements-dev.txt
 cp .env.example .env
 python -c "from app.database import init_db; init_db()"
+uvicorn app.main:app --reload --host 127.0.0.1 --port 8000
 ```
 
-3. **Frontend Setup**
+The backend API is available at `http://127.0.0.1:8000`; interactive API documentation is at `http://127.0.0.1:8000/docs`.
+
+### 2. Set up the frontend
+
+In a second terminal, from the repository root:
+
 ```bash
 cd frontend
-npm install
-cp .env.example .env
+npm ci
 ```
 
-4. **Run the Application**
+If `frontend/.env.example` exists, copy it to `.env` and follow its documented settings. Then start the development server:
 
-**Terminal 1 - Backend:**
 ```bash
-cd backend
-source venv/Scripts/activate
-uvicorn app.main:app --reload --port 8000
-```
-
-**Terminal 2 - Frontend:**
-```bash
-cd frontend
 npm run dev
 ```
 
-5. **Access the Application**
-- Frontend: http://localhost:3000
-- Backend API: http://localhost:8000
-- API Documentation: http://localhost:8000/docs
+Use the local URL printed by Vite in the terminal.
 
-## 📖 Features
+## Tests and checks
 
-### Core Functionality
-- ✅ Create, read, update, delete monitoring endpoints
-- ✅ Trigger manual health checks (simulated)
-- ✅ View monitoring history and statistics
-- ✅ Automatic incident creation on failures
-- ✅ Incident management (acknowledge, resolve)
-- ✅ In-app alert panel for active incidents
-- ✅ Real-time statistics (success rate, uptime, response time)
+### Backend
 
-### Technical Features
-- ✅ RESTful API with FastAPI
-- ✅ React + TypeScript frontend
-- ✅ SQLite database with SQLAlchemy ORM
-- ✅ Pydantic validation
-- ✅ Comprehensive test coverage (34 backend tests)
-- ✅ Interactive API documentation
-- ✅ Docker support
-- ✅ GitHub Actions CI/CD
+From the repository root:
 
-## 🧪 Testing
-
-### Backend Tests
 ```bash
 cd backend
-source venv/Scripts/activate
-pytest tests/ -v
+python -m pip install -r requirements.txt -r requirements-dev.txt
+python -m pytest tests/ -v
+python -m pip_audit
 ```
 
-**Test Coverage:** 36/36 tests passing
+The test suite uses an isolated in-memory SQLite database. Tests create their schema automatically and should not require a manually initialized local database.
 
-### Frontend Tests
+### Frontend
+
+From the repository root:
+
 ```bash
 cd frontend
+npm ci
 npm test -- --run
+npm run lint
+npm run build
 ```
 
-**Test Coverage:** 4/4 tests passing
+## API overview
 
-## 📊 Project Structure
+The API is documented interactively at `/docs` while the backend is running. Main routes include:
 
-```
-cloudpulse-new/
-├── backend/
-│   ├── app/
-│   │   ├── api/              # API endpoints
-│   │   │   ├── endpoints.py   # Endpoint CRUD
-│   │   │   └── monitoring.py  # Monitoring & incidents
-│   │   ├── main.py           # FastAPI app
-│   │   ├── config.py         # Configuration
-│   │   ├── database.py       # Database connection
-│   │   ├── models.py         # SQLAlchemy models
-│   │   └── schemas.py        # Pydantic schemas
-│   ├── tests/
-│   │   ├── test_database.py   # Database model tests
-│   │   ├── test_endpoints_api.py  # API tests
-│   │   └── test_monitoring.py     # Monitoring tests
-│   ├── requirements.txt
-│   ├── requirements-dev.txt
-│   └── Dockerfile
-├── frontend/
-│   ├── src/
-│   │   ├── components/
-│   │   │   └── Dashboard.tsx  # Main dashboard
-│   │   ├── services/
-│   │   │   └── api.ts          # API client
-│   │   ├── types/
-│   │   │   └── index.ts        # TypeScript types
-│   │   ├── App.tsx
-│   │   └── main.tsx
-│   ├── package.json
-│   └── Dockerfile
-├── docker-compose.yml
-└── README.md
-```
+- `/health` — backend health check
+- `/api/endpoints/` — endpoint CRUD
+- `/api/endpoints/{endpoint_id}/check` — run a simulated check
+- `/api/endpoints/{endpoint_id}/results` — retrieve monitoring history
+- `/api/endpoints/{endpoint_id}/stats` — retrieve statistics
+- `/api/endpoints/{endpoint_id}/incidents` — retrieve incidents
+- `/api/endpoints/incidents/{incident_id}` — update an incident
 
-## ⚠️ Important Notes
+## Security and limitations
 
-### Simulated Monitoring
-The health check system is **simulated** for demonstration purposes:
-- 80% success rate for demo purposes
-- Does not make real HTTP requests to external endpoints
-- Clearly labeled as "SIMULATED" in the UI
-- In production, this would be replaced with real HTTP requests
+- The current demo does **not** implement user authentication or authorization. Do not expose it publicly or use it to store sensitive data.
+- Monitoring is simulated and is intended for demonstration and learning.
+- SQLite is used for local development.
+- Configure a strong secret through environment variables before extending or deploying the application.
+- No paid monitoring, messaging, or external API service is required for the local demo.
 
-### No Authentication
-The application currently has **no authentication**:
-- All endpoints are publicly accessible
-- This is acceptable for a demo/portfolio project
-- Would need to be addressed before production deployment
-- Password hashing infrastructure is in place for future implementation
+## Project structure
 
-### Free and Local
-- All functionality is local and free
-- No paid services, APIs, or external dependencies
-- SQLite database (no database costs)
-- In-app alerts only (no email/SMS)
-
-## 🔒 Security
-
-### Implemented
-- ✅ Password hashing with bcrypt (ready for future auth)
-- ✅ Input validation with Pydantic
-- ✅ SQL injection prevention via SQLAlchemy ORM
-- ✅ CORS configuration
-- ✅ Environment variables for secrets
-- ✅ No plaintext passwords stored
-
-### Limitations
-- ⚠️ No authentication (documented limitation)
-- ⚠️ SQLite (would migrate to PostgreSQL for production)
-- ⚠️ No rate limiting
-- ⚠️ No HTTPS in development
-
-## 🎓 Learning Opportunities
-
-This project demonstrates:
-- Full-stack development (Python + React)
-- RESTful API design
-- Database modeling and relationships
-- Frontend state management
-- API integration
-- Testing strategies
-- Docker containerization
-- CI/CD with GitHub Actions
-
-## 📈 Future Improvements
-
-### For Production
-- Add JWT authentication
-- Implement real HTTP health checks
-- Migrate to PostgreSQL
-- Add rate limiting
-- Implement background job scheduler
-- Add comprehensive logging
-- Add E2E tests with Playwright
-
-### Features
-- User authentication and authorization
-- Team collaboration
-- Webhook integrations
-- Email alerts (with free SMTP service)
-- Advanced analytics
-- Performance optimization
-
-## 📝 Documentation
-
-- [Implementation Plan](CLOUDPULSE_IMPLEMENTATION_PLAN.md)
-- [Phase 1 Report](PHASE1_REPORT.md) - Database setup and models
-- [Phase 2 Report](PHASE2_REPORT.md) - API endpoints and validation
-- [Phase 3 Report](PHASE3_REPORT.md) - Monitoring, incidents, and frontend
-- [Phase 4 Report](PHASE4_REPORT.md) - Final polish and summary
-
-## 🚢 Deployment
-
-### Free Options
-- **Render.com** - Free tier for Python/SQLite
-- **Railway.app** - Free credits available
-- **Vercel + PythonAnywhere** - Free frontend + backend hosting
-
-### Docker
-```bash
-docker-compose up --build
+```text
+backend/
+  app/
+    api/
+    config.py
+    database.py
+    main.py
+    models.py
+    schemas.py
+  tests/
+frontend/
+  src/
+.github/
+  workflows/
+    ci.yml
 ```
 
-## 📄 License
+## Maintainer
 
-MIT
+**EMMY**
 
-## 👨‍💻 Portfolio Context
+Repository: [Emmy1-tech/CloudPulse](https://github.com/Emmy1-tech/CloudPulse)
 
-This project was built as a demonstration of:
-- Full-stack development skills
-- API design and implementation
-- Database modeling
-- Frontend-backend integration
-- Testing and CI/CD
-- Problem-solving and debugging
+## License
 
-Perfect for showcasing to potential employers in the software engineering field.
+See the repository's license file for license terms.
