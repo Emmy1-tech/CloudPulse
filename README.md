@@ -144,6 +144,7 @@ The endpoint must already exist. API behavior and schemas can be explored at /do
 ## Known limitations and deployment risks
 
 - **No authentication or authorization.** The API routes are public and list/update/delete operations are not scoped to a verified user. Anyone who can reach the API can read or modify endpoint records.
+- **Placeholder secret configuration.** `SECRET_KEY` has a development placeholder default and is not currently used because authentication is not implemented. Never use the placeholder for token signing; require a real secret before adding authentication.
 - **Simulated checks only.** The backend does not contact the endpoint URL, validate a real response, or measure real network latency.
 - **No scheduled checks.** The interval is stored but no worker currently executes checks on a schedule.
 - **SQLite demo persistence.** There are no migration-managed production schema upgrades, backup strategy, or multi-instance database design.
