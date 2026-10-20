@@ -156,6 +156,12 @@ jobs:
         working-directory: frontend
         run: npm run lint
 
-      - name: Build frontend
+      - name: Build frontend (backend-connected mode)
         working-directory: frontend
         run: npm run build
+
+      - name: Build frontend (public demo mode)
+        working-directory: frontend
+        run: npm run build
+        env:
+          VITE_DEMO_MODE: 'true'
