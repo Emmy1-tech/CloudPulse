@@ -322,16 +322,22 @@ export default function Dashboard() {
             </select>
           </label>
         </div>
-        {endpoints.length === 0 ? (
+        {endpoints.length === 0 && (
           <div className="empty-state">
             <p>No endpoints configured</p>
             <button className="button button-primary" onClick={() => setShowForm(true)}>
               Add your first endpoint
             </button>
           </div>
-        ) : filteredEndpoints.length === 0 ? (
-            <div className="empty-state">No endpoints match this search and filter.</div>
-          ) : (
+        )}
+
+        {endpoints.length > 0 && filteredEndpoints.length === 0 && (
+          <div className="empty-state">
+            <p>No endpoints match this search and filter.</p>
+          </div>
+        )}
+
+        {filteredEndpoints.length > 0 && (
           <div className="endpoints-grid">
             {filteredEndpoints.map(endpoint => (
               <div key={endpoint.id} className="card endpoint-card" onClick={() => setSelectedEndpoint(endpoint)}>
