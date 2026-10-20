@@ -23,10 +23,11 @@ jobs:
       - name: Check out repository
         uses: actions/checkout@v7
 
+      # The repository's Pages site must be enabled once in Settings.
+      # Do not ask the workflow token to create/enable the Pages site:
+      # GitHub App integration tokens may not have that repository-admin capability.
       - name: Configure GitHub Pages
         uses: actions/configure-pages@v5
-        with:
-          enablement: true
 
       - name: Set up Node.js
         uses: actions/setup-node@v4
