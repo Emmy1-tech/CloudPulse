@@ -1,6 +1,7 @@
 {
   "name": "cloudpulse-frontend",
   "version": "0.1.0",
+  "author": "EMMY",
   "type": "module",
   "scripts": {
     "dev": "vite",
