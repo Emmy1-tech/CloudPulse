@@ -24,9 +24,12 @@ class Settings(BaseSettings):
     algorithm: str = "HS256"
     access_token_expire_minutes: int = 1440  # 24 hours
 
+    # Cross-origin browser access. Override with a comma-separated list in deployment.
+    cors_origins: str = "http://localhost:5173,http://127.0.0.1:5173,http://localhost:3000,http://127.0.0.1:3000"
+
     # Application
     app_name: str = "CloudPulse API"
-    debug: bool = True
+    debug: bool = False
 
     model_config = {
         "env_file": ".env",
