@@ -8,22 +8,30 @@ export default function Dashboard() {
   const [endpoints, setEndpoints] = useState<Endpoint[]>([])
   const [incidents, setIncidents] = useState<Incident[]>([])
   const [loading, setLoading] = useState(true)
+  const [loadError, setLoadError] = useState<string | null>(null)
+  const [searchQuery, setSearchQuery] = useState('')
+  const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'inactive'>('all')
+  const [recentResults, setRecentResults] = useState<MonitoringResult[]>([])
   const [showForm, setShowForm] = useState(false)
   const [editingEndpoint, setEditingEndpoint] = useState<Endpoint | null>(null)
   const [selectedEndpoint, setSelectedEndpoint] = useState<Endpoint | null>(null)
 
   const loadEndpoints = async () => {
+    setLoadError(null)
     try {
       const data = await endpointsApi.list()
       setEndpoints(data)
-      
-      // Load incidents for all endpoints
-      const incidentGroups = await Promise.all(
-        data.map(endpoint => endpointsApi.getIncidents(endpoint.id))
-      )
-      setIncidents(incidentGroups.flat())
+
+      // One endpoint's history should not hide the rest of the workspace if it fails.
+      const [incidentGroups, resultGroups] = await Promise.all([
+        Promise.all(data.map(endpoint => endpointsApi.getIncidents(endpoint.id).catch(() => [] as Incident[]))),
+        Promise.all(data.map(endpoint => endpointsApi.getResults(endpoint.id, 20).catch(() => [] as MonitoringResult[]))),
+      ])
+      setIncidents(incidentGroups.flat().sort((a, b) => b.created_at.localeCompare(a.created_at)))
+      setRecentResults(resultGroups.flat().sort((a, b) => b.checked_at.localeCompare(a.checked_at)).slice(0, 30))
     } catch (error) {
       console.error('Failed to load endpoints:', error)
+      setLoadError('CloudPulse could not load workspace data. Check the API connection and try again.')
     } finally {
       setLoading(false)
     }
@@ -66,13 +74,23 @@ export default function Dashboard() {
     }
   }
 
+  const handleAcknowledgeIncident = async (incidentId: number) => {
+    try {
+      await endpointsApi.updateIncident(incidentId, 'acknowledged')
+      await loadEndpoints()
+    } catch (error) {
+      console.error('Failed to acknowledge incident:', error)
+      setLoadError('Could not acknowledge the incident. Please retry.')
+    }
+  }
+
   const handleResolveIncident = async (incidentId: number) => {
     try {
       await endpointsApi.updateIncident(incidentId, 'resolved')
-      loadEndpoints()
+      await loadEndpoints()
     } catch (error) {
       console.error('Failed to resolve incident:', error)
-      alert('Failed to resolve incident')
+      setLoadError('Could not resolve the incident. Please retry.')
     }
   }
 
@@ -81,6 +99,27 @@ export default function Dashboard() {
   }
 
   const openIncidents = incidents.filter(i => i.status === 'open' || i.status === 'acknowledged')
+  const filteredEndpoints = endpoints.filter(endpoint => {
+    const query = searchQuery.trim().toLowerCase()
+    const matchesQuery = !query || endpoint.name.toLowerCase().includes(query) || endpoint.url.toLowerCase().includes(query)
+    const matchesStatus = statusFilter === 'all' || (statusFilter === 'active' ? endpoint.is_active : !endpoint.is_active)
+    return matchesQuery && matchesStatus
+  })
+  const responseSeries = recentResults
+    .filter(result => result.response_time !== null)
+    .slice(0, 12)
+    .reverse()
+  const responseValues = responseSeries.map(result => result.response_time ?? 0)
+  const responseMin = responseValues.length ? Math.min(...responseValues) : 0
+  const responseMax = responseValues.length ? Math.max(...responseValues) : 0
+  const responsePolyline = responseSeries.map((result, index) => {
+    const x = responseSeries.length < 2 ? 50 : 8 + (index / (responseSeries.length - 1)) * 184
+    const value = result.response_time ?? 0
+    const y = 78 - ((value - responseMin) / Math.max(1, responseMax - responseMin)) * 54
+    return `${x},${y}`
+  }).join(' ')
+  const recentChecks = recentResults.length
+  const failedChecks = recentResults.filter(result => result.status === 'failure').length
 
   return (
     <div className="app-container">
@@ -112,6 +151,13 @@ export default function Dashboard() {
         )}
       </header>
 
+      {loadError && (
+        <div className="error-banner" role="alert">
+          <span>{loadError}</span>
+          <button className="button" onClick={() => void loadEndpoints()}>Retry</button>
+        </div>
+      )}
+
       <section className="summary-grid" aria-label="Monitoring summary">
         <article className="summary-card">
           <span className="summary-label">Registered endpoints</span>
@@ -128,6 +174,46 @@ export default function Dashboard() {
           <strong className="summary-value">{openIncidents.length}</strong>
           <span className="summary-note">{openIncidents.length === 0 ? 'No unresolved incidents' : 'Require review or resolution'}</span>
         </article>
+        <article className="summary-card checks">
+          <span className="summary-label">Recent checks</span>
+          <strong className="summary-value">{recentChecks}</strong>
+          <span className="summary-note">{failedChecks} simulated failure{failedChecks === 1 ? '' : 's'} in recent history</span>
+        </article>
+      </section>
+
+      <section className="response-panel" aria-labelledby="response-title">
+        <div className="response-panel-heading">
+          <div>
+            <p className="eyebrow">CHECK HISTORY</p>
+            <h2 id="response-title">Response-time trend</h2>
+            <p className="section-description">Recorded checks only. Results are simulated in this portfolio project.</p>
+          </div>
+          <span className="chart-unit">MILLISECONDS</span>
+        </div>
+        {responseSeries.length > 1 ? (
+          <div className="response-chart">
+            <div className="chart-y-labels"><span>{responseMax} ms</span><span>{Math.round((responseMax + responseMin) / 2)} ms</span><span>{responseMin} ms</span></div>
+            <svg viewBox="0 0 200 90" role="img" aria-label="Response time trend from recent recorded checks" preserveAspectRatio="none">
+              <defs>
+                <linearGradient id="response-fill" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stopColor="#69dec3" stopOpacity=".28" />
+                  <stop offset="100%" stopColor="#69dec3" stopOpacity="0" />
+                </linearGradient>
+              </defs>
+              <path d={`M ${responsePolyline.split(' ').join(' L ')} L 192 88 L 8 88 Z`} fill="url(#response-fill)" />
+              <polyline points={responsePolyline} fill="none" stroke="#48cdb0" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" vectorEffect="non-scaling-stroke" />
+              {responseSeries.map((result, index) => {
+                const x = responseSeries.length < 2 ? 50 : 8 + (index / (responseSeries.length - 1)) * 184
+                const value = result.response_time ?? 0
+                const y = 78 - ((value - responseMin) / Math.max(1, responseMax - responseMin)) * 54
+                return <circle key={result.id} cx={x} cy={y} r="2.2" fill="#d5fff5" stroke="#249c85" strokeWidth="1.4" />
+              })}
+            </svg>
+            <div className="chart-x-labels"><span>Older checks</span><span>Most recent</span></div>
+          </div>
+        ) : (
+          <div className="chart-empty">Run a check on an endpoint to build a response-time trend from recorded results.</div>
+        )}
       </section>
 
       <div className="section-heading">
@@ -186,28 +272,27 @@ export default function Dashboard() {
           </div>
         </div>
         {incidents.length === 0 ? (
-          <p className="empty-state">No incidents recorded</p>
+          <p className="empty-state">No incidents recorded yet. A simulated failed check can create an incident for demonstration.</p>
         ) : (
           <div className="incidents-list">
             {incidents.map(incident => (
               <div key={incident.id} className={`card incident-card incident-${incident.status}`}>
                 <div className="incident-header">
-                  <strong>Incident #{incident.id}</strong>
-                  <span className={`status-badge status-${incident.status === 'resolved' ? 'success' : 'failure'}`}>
+                  <div>
+                    <strong>Incident #{incident.id}</strong>
+                    <p className="incident-endpoint">{endpoints.find(endpoint => endpoint.id === incident.endpoint_id)?.name ?? `Endpoint #${incident.endpoint_id}`}</p>
+                  </div>
+                  <span className={`status-badge status-${incident.status === 'resolved' ? 'success' : incident.status === 'acknowledged' ? 'warning' : 'failure'}`}>
                     {incident.status.toUpperCase()}
                   </span>
                 </div>
                 <p>Created: {new Date(incident.created_at).toLocaleString()}</p>
-                {incident.resolved_at && (
-                  <p>Resolved: {new Date(incident.resolved_at).toLocaleString()}</p>
-                )}
+                {incident.resolved_at && <p>Resolved: {new Date(incident.resolved_at).toLocaleString()}</p>}
                 {(incident.status === 'open' || incident.status === 'acknowledged') && (
-                  <button
-                    className="button button-success"
-                    onClick={() => handleResolveIncident(incident.id)}
-                  >
-                    Resolve
-                  </button>
+                  <div className="incident-actions">
+                    {incident.status === 'open' && <button className="button" onClick={() => void handleAcknowledgeIncident(incident.id)}>Acknowledge</button>}
+                    <button className="button button-success" onClick={() => void handleResolveIncident(incident.id)}>Resolve</button>
+                  </div>
                 )}
               </div>
             ))}
@@ -218,9 +303,24 @@ export default function Dashboard() {
       <div className="endpoints-section" id="endpoints">
         <div className="section-heading">
           <div>
-            <h2>Monitored endpoints</h2>
-            <p className="section-description">Select a service to inspect its check history and configuration.</p>
+            <h2>Endpoint inventory</h2>
+            <p className="section-description">Search, filter, inspect, and run an explicitly simulated manual check.</p>
           </div>
+        </div>
+        <div className="endpoint-toolbar">
+          <label className="endpoint-search">
+            <span className="sr-only">Search endpoints</span>
+            <span aria-hidden="true">⌕</span>
+            <input value={searchQuery} onChange={event => setSearchQuery(event.target.value)} placeholder="Search endpoints or URLs…" />
+          </label>
+          <label className="endpoint-filter">
+            <span className="sr-only">Filter endpoint status</span>
+            <select value={statusFilter} onChange={event => setStatusFilter(event.target.value as 'all' | 'active' | 'inactive')}>
+              <option value="all">All statuses</option>
+              <option value="active">Enabled</option>
+              <option value="inactive">Disabled</option>
+            </select>
+          </label>
         </div>
         {endpoints.length === 0 ? (
           <div className="empty-state">
@@ -230,8 +330,11 @@ export default function Dashboard() {
             </button>
           </div>
         ) : (
+          {filteredEndpoints.length === 0 ? (
+            <div className="empty-state">No endpoints match this search and filter.</div>
+          ) : (
           <div className="endpoints-grid">
-            {endpoints.map(endpoint => (
+            {filteredEndpoints.map(endpoint => (
               <div key={endpoint.id} className="card endpoint-card" onClick={() => setSelectedEndpoint(endpoint)}>
                 <h3>{endpoint.name}</h3>
                 <p className="url">{endpoint.url}</p>
@@ -264,9 +367,13 @@ export default function Dashboard() {
               </div>
             ))}
           </div>
+          )}
         )}
       </div>
-      <footer className="app-footer">CloudPulse · Maintained by EMMY</footer>
+      <footer className="app-footer">
+        <span>CloudPulse · Maintained by EMMY</span>
+        <span>Demo metrics are illustrative, not real-world uptime data.</span>
+      </footer>
     </div>
   )
 }
