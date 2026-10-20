@@ -24,15 +24,14 @@ app = FastAPI(
     debug=settings.debug
 )
 
-# Configure CORS (Cross-Origin Resource Sharing)
-# This allows the frontend to make requests to the backend
-# For development, we allow all origins. In production, restrict to your frontend domain.
+# CORS controls which browser origins can read responses; it is not authentication.
+# Keep local development origins as the default and configure deployment origins explicitly.
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # In production, replace with specific domain
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_origins=[origin.strip() for origin in settings.cors_origins.split(",") if origin.strip()],
+    allow_credentials=False,
+    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    allow_headers=["Content-Type", "Authorization"],
 )
 
 # Include API routers
