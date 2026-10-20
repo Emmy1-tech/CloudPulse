@@ -1,136 +1,159 @@
 # CloudPulse
 
-**CloudPulse** is a full-stack service-monitoring and incident-management dashboard maintained by **EMMY**.
+**CloudPulse** is a local demonstration dashboard for endpoint inventory and incident workflows, maintained by **EMMY**. It uses React and TypeScript in the browser, a FastAPI REST API, SQLAlchemy models, and SQLite persistence.
 
-It provides a local demonstration environment for registering endpoints, running simulated health checks, reviewing monitoring history, and managing incidents.
+> **Scope warning:** CloudPulse is not production monitoring software yet. Health checks are simulated rather than sent to configured URLs, authentication and authorization are not implemented, and endpoint data is not isolated by user. Run it locally only; do not expose the API to a network or store sensitive data.
 
-## Features
+## Current features
 
-- Create, view, update, and delete monitored endpoints.
-- Trigger simulated health checks and store results in SQLite.
-- Review success rates, uptime estimates, response times, and check history.
-- Create incidents when simulated checks fail and prevent duplicate open incidents.
-- Acknowledge and resolve incidents.
-- View monitoring and incident information in a React dashboard.
-- Explore the REST API through FastAPI's interactive documentation.
+- Create, view, update, and delete endpoint records.
+- Trigger simulated checks with forced success/failure options.
+- Persist check history and calculate success-rate, uptime-style, and response-time statistics from simulated data.
+- Open incidents after simulated failures, avoid duplicate open incidents, and acknowledge or resolve incidents.
+- Browse the REST API using FastAPI's /docs page.
 
-> **Monitoring is simulated.** The application does not make real health-check requests to the configured external URLs. Do not use its metrics as production monitoring data.
+The stored check_interval is configuration data only; there is no background scheduler that runs checks automatically. Metrics are derived from simulated outcomes and must not be interpreted as real uptime or service availability.
 
-## Technology stack
+## Architecture and data flow
 
-- **Backend:** Python 3.12+, FastAPI, SQLAlchemy, SQLite, Pydantic
-- **Frontend:** React, TypeScript, Vite
-- **Tests:** pytest, Vitest
-- **CI:** GitHub Actions
-- **Optional container workflow:** Docker and Docker Compose
+    React + TypeScript dashboard
+            | HTTP/JSON (Axios; VITE_API_URL)
+            v
+    FastAPI routers + Pydantic request/response validation
+            |
+            v
+    SQLAlchemy ORM -> SQLite
+            |
+            +-- endpoint records
+            +-- monitoring result history
+            +-- incidents
+
+The dashboard uses a single Axios client configured by VITE_API_URL. FastAPI endpoints validate payloads with Pydantic and access persistence through request-scoped SQLAlchemy sessions. backend/app/database.py registers models before creating tables for the local demo.
 
 ## Prerequisites
 
-- Python 3.12 or newer within the supported dependency range
+- Python 3.12
 - Node.js 20 and npm
 - Git
+- Docker Engine with Docker Compose (optional)
 
 ## Run locally
-
-Open two terminals from the repository root.
-
-### 1. Set up the backend
-
-**Windows PowerShell:**
-
-```powershell
-cd backend
-py -3.12 -m venv venv
-.\venv\Scripts\Activate.ps1
-python -m pip install --upgrade pip
-python -m pip install -r requirements.txt -r requirements-dev.txt
-Copy-Item .env.example .env
-python -c "from app.database import init_db; init_db()"
-uvicorn app.main:app --reload --host 127.0.0.1 --port 8000
-```
-
-**macOS / Linux:**
-
-```bash
-cd backend
-python3.12 -m venv venv
-source venv/bin/activate
-python -m pip install --upgrade pip
-python -m pip install -r requirements.txt -r requirements-dev.txt
-cp .env.example .env
-python -c "from app.database import init_db; init_db()"
-uvicorn app.main:app --reload --host 127.0.0.1 --port 8000
-```
-
-The backend API is available at `http://127.0.0.1:8000`; interactive API documentation is at `http://127.0.0.1:8000/docs`.
-
-### 2. Set up the frontend
-
-In a second terminal, from the repository root:
-
-```bash
-cd frontend
-npm ci
-```
-
-If `frontend/.env.example` exists, copy it to `.env` and follow its documented settings. Then start the development server:
-
-```bash
-npm run dev
-```
-
-Use the local URL printed by Vite in the terminal.
-
-## Tests and checks
 
 ### Backend
 
 From the repository root:
 
-```bash
+**Windows PowerShell**
+\`\`\`powershell
 cd backend
+py -3.12 -m venv .venv
+.\\.venv\\Scripts\\Activate.ps1
+python -m pip install --upgrade pip
 python -m pip install -r requirements.txt -r requirements-dev.txt
-python -m pytest tests/ -v
-python -m pip_audit
-```
+Copy-Item .env.example .env
+python -c "from app.database import init_db; init_db()"
+uvicorn app.main:app --reload --host 127.0.0.1 --port 8000
+\`\`\`
 
-The test suite uses an isolated in-memory SQLite database. Tests create their schema automatically and should not require a manually initialized local database.
+**macOS / Linux**
+\`\`\`bash
+cd backend
+python3.12 -m venv .venv
+source .venv/bin/activate
+python -m pip install --upgrade pip
+python -m pip install -r requirements.txt -r requirements-dev.txt
+cp .env.example .env
+python -c "from app.database import init_db; init_db()"
+uvicorn app.main:app --reload --host 127.0.0.1 --port 8000
+\`\`\`
+
+The API is available at http://127.0.0.1:8000; interactive docs are at http://127.0.0.1:8000/docs.
 
 ### Frontend
 
+Open a second terminal from the repository root:
+
+\`\`\`bash
+cd frontend
+npm ci
+\`\`\`
+
+Copy frontend/.env.example to frontend/.env if you need to change the API address. Start Vite:
+
+\`\`\`bash
+npm run dev
+\`\`\`
+
+Use the local URL printed by Vite. The API client reads VITE_API_URL; the default is http://localhost:8000.
+
+### Docker Compose demo
+
 From the repository root:
 
-```bash
-cd frontend
+\`\`\`bash
+docker compose up --build
+\`\`\`
+
+The demo publishes the backend at http://127.0.0.1:8000 and the frontend at http://127.0.0.1:3000. Compose initializes the SQLite schema before launching the API and waits for the backend health endpoint before starting the frontend. Ports bind to loopback by default to reduce accidental network exposure; this does not replace authentication or make the application safe for public deployment.
+
+Stop the stack with Ctrl+C, then run docker compose down. To remove the demo database volume too, run docker compose down --volumes.
+
+## Tests and security checks
+
+Backend, from backend/:
+
+\`\`\`bash
+python -m pytest tests/ -v
+python -m pip_audit
+\`\`\`
+
+Frontend, from frontend/:
+
+\`\`\`bash
 npm ci
 npm test -- --run
 npm run lint
 npm run build
-```
+npm audit --audit-level=moderate
+\`\`\`
+
+GitHub Actions runs backend tests and model-schema registration, pip-audit, frontend tests/lint/build, the frontend dependency audit, and a Docker Compose smoke test. A successful build or test run does not establish that the app is secure or production-ready. Review the latest [Actions runs](https://github.com/Emmy1-tech/CloudPulse/actions) and the [engineering review](ENGINEERING_REVIEW.md) for current results and remaining risks.
+
+### Regression scenario: fresh SQLite test database
+
+From backend/, run python -m pytest tests/ -v. The test fixtures create an isolated in-memory SQLite schema and route each API request to a session bound to that test engine. The tests exercise endpoint creation, simulated check persistence, incident creation, and duplicate-open-incident prevention. They should not depend on a previously initialized local cloudpulse.db.
 
 ## API overview
 
-The API is documented interactively at `/docs` while the backend is running. Main routes include:
+- GET /health — basic API process health response
+- /api/endpoints/ — endpoint CRUD
+- POST /api/endpoints/{endpoint_id}/check — create a simulated check result; optionally pass ?force_status=success or ?force_status=failure
+- GET /api/endpoints/{endpoint_id}/results — monitoring history
+- GET /api/endpoints/{endpoint_id}/stats — statistics derived from stored simulated results
+- GET /api/endpoints/{endpoint_id}/incidents — incident history
+- PUT /api/endpoints/incidents/{incident_id} — acknowledge or resolve an incident
 
-- `/health` — backend health check
-- `/api/endpoints/` — endpoint CRUD
-- `/api/endpoints/{endpoint_id}/check` — run a simulated check
-- `/api/endpoints/{endpoint_id}/results` — retrieve monitoring history
-- `/api/endpoints/{endpoint_id}/stats` — retrieve statistics
-- `/api/endpoints/{endpoint_id}/incidents` — retrieve incidents
-- `/api/endpoints/incidents/{incident_id}` — update an incident
+Example request:
 
-## Security and limitations
+\`\`\`bash
+curl -X POST "http://127.0.0.1:8000/api/endpoints/1/check?force_status=failure"
+\`\`\`
 
-- The current demo does **not** implement user authentication or authorization. Do not expose it publicly or use it to store sensitive data.
-- Monitoring is simulated and is intended for demonstration and learning.
-- SQLite is used for local development.
-- Configure a strong secret through environment variables before extending or deploying the application.
-- No paid monitoring, messaging, or external API service is required for the local demo.
+The endpoint must already exist. API behavior and schemas can be explored at /docs.
+
+## Known limitations and deployment risks
+
+- **No authentication or authorization.** The API routes are public and list/update/delete operations are not scoped to a verified user. Anyone who can reach the API can read or modify endpoint records.
+- **Simulated checks only.** The backend does not contact the endpoint URL, validate a real response, or measure real network latency.
+- **No scheduled checks.** The interval is stored but no worker currently executes checks on a schedule.
+- **SQLite demo persistence.** There are no migration-managed production schema upgrades, backup strategy, or multi-instance database design.
+- **Basic health endpoint.** /health is a process-level response, not a full dependency/readiness check.
+- **Security audits are time-sensitive.** npm and Python audit results depend on current advisory databases; inspect the latest workflow rather than relying on an old report.
+- **CORS and deployment configuration need a production review.** Do not expose the API publicly until access control, allowed origins, secrets, logging, rate limits, and deployment settings have been addressed.
 
 ## Project structure
 
-```text
+\`\`\`text
 backend/
   app/
     api/
@@ -142,17 +165,17 @@ backend/
   tests/
 frontend/
   src/
-.github/
-  workflows/
-    ci.yml
-```
+    components/
+    services/
+    test/
+.github/workflows/ci.yml
+docker-compose.yml
+\`\`\`
 
 ## Maintainer
 
-**EMMY**
-
-Repository: [Emmy1-tech/CloudPulse](https://github.com/Emmy1-tech/CloudPulse)
+**EMMY** — [GitHub repository](https://github.com/Emmy1-tech/CloudPulse)
 
 ## License
 
-See the repository's license file for license terms.
+No license file is currently present in the repository. Unless a license is added, others should not assume the project is licensed for reuse.
