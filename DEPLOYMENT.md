@@ -2,20 +2,23 @@
 
 ## Public portfolio website
 
-CloudPulse publishes its **frontend demo** to GitHub Pages at:
+CloudPulse's public website is a **static frontend demo** intended for GitHub Pages:
 
 https://emmy1-tech.github.io/CloudPulse/
 
-The deployment workflow is `.github/workflows/deploy-pages.yml`. It builds the existing React + TypeScript application and deploys the generated static files whenever a change reaches `main`. You can also run it manually from **GitHub → Actions → Deploy CloudPulse portfolio demo → Run workflow**.
+The workflow is `.github/workflows/deploy-pages.yml`. After the one-time Pages setup below, it builds the React + TypeScript app and publishes it when changes reach `main`. It can also be run manually from **GitHub → Actions → Deploy CloudPulse portfolio demo → Run workflow**.
 
-### One-time GitHub setup
+### One-time GitHub setup (required)
 
-1. Open the [CloudPulse repository settings](https://github.com/Emmy1-tech/CloudPulse/settings/pages).
-2. Under **Build and deployment**, select **GitHub Actions** as the source if it is not already selected.
-3. Open the [Actions tab](https://github.com/Emmy1-tech/CloudPulse/actions) and watch **Deploy CloudPulse portfolio demo**. A green run means the static site was published.
-4. Once the deployment completes, open https://emmy1-tech.github.io/CloudPulse/ in a browser.
+The workflow intentionally does not try to create or enable the GitHub Pages site through its Actions token. That operation can fail with `Resource not accessible by integration` because the workflow token does not have repository-administration permissions.
 
-The workflow runs on pushes to `main`, so merging an approved pull request automatically rebuilds and republishes the site. No hosting API key or repository secret is required.
+1. Open [CloudPulse repository Settings → Pages](https://github.com/Emmy1-tech/CloudPulse/settings/pages).
+2. Under **Build and deployment**, set **Source** to **GitHub Actions** and save if prompted.
+3. Open the [Actions tab](https://github.com/Emmy1-tech/CloudPulse/actions).
+4. Select **Deploy CloudPulse portfolio demo**, choose **Run workflow** on the `main` branch, and run it.
+5. Wait for both the build and deploy jobs to succeed, then open https://emmy1-tech.github.io/CloudPulse/.
+
+A successful CI run alone does not mean the website has been published; the Pages deployment must also succeed. If Pages settings are organization-managed or unavailable, a repository administrator must enable Pages.
 
 ## Demo mode and backend safety
 
