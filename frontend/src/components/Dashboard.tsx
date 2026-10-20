@@ -329,8 +329,7 @@ export default function Dashboard() {
               Add your first endpoint
             </button>
           </div>
-        ) : (
-          {filteredEndpoints.length === 0 ? (
+        ) : filteredEndpoints.length === 0 ? (
             <div className="empty-state">No endpoints match this search and filter.</div>
           ) : (
           <div className="endpoints-grid">
@@ -367,7 +366,6 @@ export default function Dashboard() {
               </div>
             ))}
           </div>
-          )}
         )}
       </div>
       <footer className="app-footer">
