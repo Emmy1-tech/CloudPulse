@@ -84,24 +84,65 @@ export default function Dashboard() {
 
   return (
     <div className="app-container">
-      <div className="header">
-        <h1>CloudPulse Dashboard</h1>
-        <p className="subtitle">SIMULATED monitoring system for demonstration</p>
-        
+      <header className="header">
+        <div className="header-topline">
+          <div className="brand-lockup">
+            <span className="brand-mark" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none">
+                <path d="M5 15.5a4.5 4.5 0 0 1 .6-9A6.5 6.5 0 0 1 18 8a3.8 3.8 0 0 1 1 7.5H5Z" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+                <path d="m8 12 2.5 2.5L16 9" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
+            </span>
+            <span>CloudPulse</span>
+          </div>
+          <span className="environment-pill">Demo environment</span>
+        </div>
+        <div className="header-copy">
+          <p className="eyebrow">OPERATIONS OVERVIEW</p>
+          <h1>Your services, at a glance.</h1>
+          <p className="subtitle">
+            A clear view of your registered endpoints and incident activity.
+            Monitoring outcomes in this portfolio demo are simulated.
+          </p>
+        </div>
         {openIncidents.length > 0 && (
-          <div className="alert-banner">
-            <strong>⚠️ {openIncidents.length} Active Incident{openIncidents.length > 1 ? 's' : ''}</strong>
+          <div className="alert-banner" role="status">
+            <strong>{openIncidents.length} active incident{openIncidents.length > 1 ? 's' : ''} need attention</strong>
           </div>
         )}
-      </div>
+      </header>
 
-      <div className="actions">
+      <section className="summary-grid" aria-label="Monitoring summary">
+        <article className="summary-card">
+          <span className="summary-label">Registered endpoints</span>
+          <strong className="summary-value">{endpoints.length}</strong>
+          <span className="summary-note">Services configured in this workspace</span>
+        </article>
+        <article className="summary-card active">
+          <span className="summary-label">Active endpoints</span>
+          <strong className="summary-value">{endpoints.filter(endpoint => endpoint.is_active).length}</strong>
+          <span className="summary-note">Enabled for manual checks</span>
+        </article>
+        <article className="summary-card incidents">
+          <span className="summary-label">Open incidents</span>
+          <strong className="summary-value">{openIncidents.length}</strong>
+          <span className="summary-note">{openIncidents.length === 0 ? 'No unresolved incidents' : 'Require review or resolution'}</span>
+        </article>
+      </section>
+
+      <div className="section-heading">
+        <div>
+          <h2>Workspace actions</h2>
+          <p className="section-description">Manage the services connected to your CloudPulse workspace.</p>
+        </div>
+        <div className="actions">
         <button 
           className="button button-primary"
           onClick={() => setShowForm(true)}
         >
           + Add Endpoint
         </button>
+        </div>
       </div>
 
       {showForm && (
@@ -138,7 +179,12 @@ export default function Dashboard() {
       )}
 
       <div className="incidents-section">
-        <h2>Incidents</h2>
+        <div className="section-heading">
+          <div>
+            <h2>Incident activity</h2>
+            <p className="section-description">Review recent alerts and resolve items that are no longer active.</p>
+          </div>
+        </div>
         {incidents.length === 0 ? (
           <p className="empty-state">No incidents recorded</p>
         ) : (
@@ -170,7 +216,12 @@ export default function Dashboard() {
       </div>
 
       <div className="endpoints-section">
-        <h2>Endpoints</h2>
+        <div className="section-heading">
+          <div>
+            <h2>Monitored endpoints</h2>
+            <p className="section-description">Select a service to inspect its check history and configuration.</p>
+          </div>
+        </div>
         {endpoints.length === 0 ? (
           <div className="empty-state">
             <p>No endpoints configured</p>
