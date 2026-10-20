@@ -5,6 +5,7 @@ on:
     branches: [main, develop, fix/backend-ci-and-emmy-branding]
   pull_request:
     branches: [main]
+  workflow_dispatch:
 
 permissions:
   contents: read
@@ -34,7 +35,17 @@ jobs:
 
       - name: Verify database schema initialization
         working-directory: backend
-        run: python -c "from app.database import Base, init_db; from app import models; init_db(); required = {'users', 'endpoints', 'monitoring_results', 'alerts', 'incidents'}; missing = required - set(Base.metadata.tables); assert not missing, f'Missing model tables: {sorted(missing)}'; print('Registered tables:', ', '.join(sorted(Base.metadata.tables)))"
+        run: |
+          python - <<'PY'
+          from app import models
+          from app.database import Base, init_db
+
+          init_db()
+          required = {"users", "endpoints", "monitoring_results", "alerts", "incidents"}
+          missing = required - set(Base.metadata.tables)
+          assert not missing, f"Missing model tables: {sorted(missing)}"
+          print("Registered tables:", ", ".join(sorted(Base.metadata.tables)))
+          PY
 
       - name: Run backend tests
         working-directory: backend
