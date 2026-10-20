@@ -222,6 +222,7 @@ export default function Dashboard() {
           </div>
         )}
       </div>
+      <footer className="app-footer">CloudPulse · Maintained by EMMY</footer>
     </div>
   )
 }
