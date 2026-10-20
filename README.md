@@ -2,6 +2,10 @@
 
 **CloudPulse** is a local demonstration dashboard for endpoint inventory and incident workflows, maintained by **EMMY**. It uses React and TypeScript in the browser, a FastAPI REST API, SQLAlchemy models, and SQLite persistence.
 
+## Public portfolio demo
+
+The interactive React frontend can be published as a static site at [emmy1-tech.github.io/CloudPulse](https://emmy1-tech.github.io/CloudPulse/) using [GitHub Pages](DEPLOYMENT.md). The hosted build uses clearly labelled sample data stored in each visitor's browser; it does not contact monitored URLs or expose the local FastAPI API. Deployment runs automatically when approved changes are merged into `main`. See [deployment instructions](DEPLOYMENT.md) for setup and safety boundaries.
+
 > **Scope warning:** CloudPulse is not production monitoring software yet. Health checks are simulated rather than sent to configured URLs, authentication and authorization are not implemented, and endpoint data is not isolated by user. Run it locally only; do not expose the API to a network or store sensitive data.
 
 ## Current features
