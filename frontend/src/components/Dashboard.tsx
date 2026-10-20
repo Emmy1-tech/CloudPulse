@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { endpointsApi } from '../services/api'
-import { Endpoint, Incident, EndpointCreate } from '../types'
+import { Endpoint, Incident, EndpointCreate, MonitoringResult, EndpointStats } from '../types'
 import './Dashboard.css'
 import '../App.css'
 
@@ -222,6 +222,7 @@ export default function Dashboard() {
           </div>
         )}
       </div>
+      <footer className="app-footer">CloudPulse · Maintained by EMMY</footer>
     </div>
   )
 }
@@ -316,8 +317,8 @@ function EndpointDetail({ endpoint, onClose, onCheck, onDelete, onEdit }: {
   onDelete: () => void;
   onEdit: () => void;
 }) {
-  const [results, setResults] = useState<any[]>([])
-  const [stats, setStats] = useState<any>(null)
+  const [results, setResults] = useState<MonitoringResult[]>([])
+  const [stats, setStats] = useState<EndpointStats | null>(null)
 
   useEffect(() => {
     const loadData = async () => {

@@ -41,3 +41,12 @@ export interface Incident {
   updated_at: string;
   resolved_at: string | null;
 }
+
+export interface EndpointStats {
+  total_checks: number;
+  success_count: number;
+  failure_count: number;
+  success_rate: number;
+  avg_response_time: number | null;
+  uptime_percentage: number;
+}

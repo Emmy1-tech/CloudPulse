@@ -2,61 +2,107 @@ name: CloudPulse CI
 
 on:
   push:
-    branches: [ main, develop ]
+    branches: [main, develop, fix/backend-ci-and-emmy-branding]
   pull_request:
-    branches: [ main ]
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
 
 jobs:
   backend-tests:
     runs-on: ubuntu-latest
-    
+
     steps:
-    - uses: actions/checkout@v4
-    
-    - name: Set up Python 3.14
-      uses: actions/setup-python@v5
-      with:
-        python-version: "3.14"
-    
-    - name: Install backend dependencies
-      run: |
-        cd backend
-        python -m pip install --upgrade pip
-        pip install -r requirements.txt
-        pip install -r requirements-dev.txt
-    
-    - name: Run backend tests
-      run: |
-        cd backend
-        pytest tests/ -v
-    
-    - name: Run security audit
-      run: |
-        cd backend
-        pip-audit
+      - name: Check out repository
+        uses: actions/checkout@v7
+
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: |
+            backend/requirements.txt
+            backend/requirements-dev.txt
+
+      - name: Install backend dependencies
+        working-directory: backend
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -r requirements.txt -r requirements-dev.txt
+
+      - name: Verify database schema initialization
+        working-directory: backend
+        run: |
+          python - <<'PY'
+          from app import models
+          from app.database import Base, init_db
+
+          init_db()
+          required = {"users", "endpoints", "monitoring_results", "alerts", "incidents"}
+          missing = required - set(Base.metadata.tables)
+          assert not missing, f"Missing model tables: {sorted(missing)}"
+          print("Registered tables:", ", ".join(sorted(Base.metadata.tables)))
+          PY
+
+      - name: Run backend tests
+        working-directory: backend
+        run: python -m pytest tests/ -v
+
+  security-audit:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v7
+
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: |
+            backend/requirements.txt
+            backend/requirements-dev.txt
+
+      - name: Install backend dependencies
+        working-directory: backend
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -r requirements.txt -r requirements-dev.txt
+
+      - name: Audit installed Python dependencies
+        working-directory: backend
+        run: pip-audit
 
   frontend-tests:
     runs-on: ubuntu-latest
-    
+
     steps:
-    - uses: actions/checkout@v4
-    
-    - name: Set up Node.js
-      uses: actions/setup-node@v4
-      with:
-        node-version: '20'
-    
-    - name: Install frontend dependencies
-      run: |
-        cd frontend
-        npm ci
-    
-    - name: Run frontend tests
-      run: |
-        cd frontend
-        npm test -- --run
-    
-    - name: Build frontend
-      run: |
-        cd frontend
-        npm run build
+      - name: Check out repository
+        uses: actions/checkout@v7
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version: "20"
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install frontend dependencies
+        working-directory: frontend
+        run: npm ci
+
+      - name: Run frontend tests
+        working-directory: frontend
+        run: npm test -- --run
+
+      - name: Run frontend lint
+        working-directory: frontend
+        run: npm run lint
+
+      - name: Build frontend
+        working-directory: frontend
+        run: npm run build

@@ -11,7 +11,7 @@ This file handles:
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from typing import List, Optional
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from app.database import get_db
 from app.models import Endpoint, MonitoringResult, Incident
 from app.schemas import MonitoringResultResponse, EndpointStats, IncidentUpdate
@@ -141,7 +141,7 @@ def get_endpoint_stats(endpoint_id: int, db: Session = Depends(get_db)):
     avg_response_time = sum(response_times) / len(response_times) if response_times else None
 
     # Calculate uptime percentage (last 24 hours)
-    cutoff_time = datetime.utcnow() - timedelta(hours=24)
+    cutoff_time = datetime.now(timezone.utc).replace(tzinfo=None) - timedelta(hours=24)
     recent_results = [r for r in results if r.checked_at >= cutoff_time]
     if recent_results:
         recent_success = sum(1 for r in recent_results if r.status == "success")
@@ -202,7 +202,7 @@ def update_incident(
 
     incident.status = update_data.status
     if update_data.status == "resolved":
-        incident.resolved_at = datetime.utcnow()
+        incident.resolved_at = datetime.now(timezone.utc).replace(tzinfo=None)
 
     db.commit()
     db.refresh(incident)
