@@ -44,7 +44,7 @@ The dashboard uses a single Axios client configured by VITE_API_URL. FastAPI end
 From the repository root:
 
 **Windows PowerShell**
-\`\`\`powershell
+```powershell
 cd backend
 py -3.12 -m venv .venv
 .\.venv\Scripts\Activate.ps1
@@ -53,10 +53,10 @@ python -m pip install -r requirements.txt -r requirements-dev.txt
 Copy-Item .env.example .env
 python -c "from app.database import init_db; init_db()"
 uvicorn app.main:app --reload --host 127.0.0.1 --port 8000
-\`\`\`
+```
 
 **macOS / Linux**
-\`\`\`bash
+```bash
 cd backend
 python3.12 -m venv .venv
 source .venv/bin/activate
@@ -65,7 +65,7 @@ python -m pip install -r requirements.txt -r requirements-dev.txt
 cp .env.example .env
 python -c "from app.database import init_db; init_db()"
 uvicorn app.main:app --reload --host 127.0.0.1 --port 8000
-\`\`\`
+```
 
 The API is available at http://127.0.0.1:8000; interactive docs are at http://127.0.0.1:8000/docs.
 
@@ -73,16 +73,16 @@ The API is available at http://127.0.0.1:8000; interactive docs are at http://12
 
 Open a second terminal from the repository root:
 
-\`\`\`bash
+```bash
 cd frontend
 npm ci
-\`\`\`
+```
 
 Copy frontend/.env.example to frontend/.env if you need to change the API address. Start Vite:
 
-\`\`\`bash
+```bash
 npm run dev
-\`\`\`
+```
 
 Use the local URL printed by Vite. The API client reads VITE_API_URL; the default is http://localhost:8000.
 
@@ -90,9 +90,9 @@ Use the local URL printed by Vite. The API client reads VITE_API_URL; the defaul
 
 From the repository root:
 
-\`\`\`bash
+```bash
 docker compose up --build
-\`\`\`
+```
 
 The demo publishes the backend at http://127.0.0.1:8000 and the frontend at http://127.0.0.1:3000. Compose initializes the SQLite schema before launching the API and waits for the backend health endpoint before starting the frontend. Ports bind to loopback by default to reduce accidental network exposure; this does not replace authentication or make the application safe for public deployment.
 
@@ -102,20 +102,20 @@ Stop the stack with Ctrl+C, then run docker compose down. To remove the demo dat
 
 Backend, from backend/:
 
-\`\`\`bash
+```bash
 python -m pytest tests/ -v
 python -m pip_audit
-\`\`\`
+```
 
 Frontend, from frontend/:
 
-\`\`\`bash
+```bash
 npm ci
 npm test -- --run
 npm run lint
 npm run build
 npm audit --audit-level=moderate
-\`\`\`
+```
 
 GitHub Actions runs backend tests and model-schema registration, pip-audit, frontend tests/lint/build, the frontend dependency audit, and a Docker Compose smoke test. A successful build or test run does not establish that the app is secure or production-ready. Review the latest [Actions runs](https://github.com/Emmy1-tech/CloudPulse/actions) and the [engineering review](ENGINEERING_REVIEW.md) for current results and remaining risks.
 
@@ -135,9 +135,9 @@ From backend/, run python -m pytest tests/ -v. The test fixtures create an isola
 
 Example request:
 
-\`\`\`bash
+```bash
 curl -X POST "http://127.0.0.1:8000/api/endpoints/1/check?force_status=failure"
-\`\`\`
+```
 
 The endpoint must already exist. API behavior and schemas can be explored at /docs.
 
@@ -149,11 +149,11 @@ The endpoint must already exist. API behavior and schemas can be explored at /do
 - **SQLite demo persistence.** There are no migration-managed production schema upgrades, backup strategy, or multi-instance database design.
 - **Basic health endpoint.** /health is a process-level response, not a full dependency/readiness check.
 - **Security audits are time-sensitive.** npm and Python audit results depend on current advisory databases; inspect the latest workflow rather than relying on an old report.
-- **CORS and deployment configuration need a production review.** Do not expose the API publicly until access control, allowed origins, secrets, logging, rate limits, and deployment settings have been addressed.
+- **CORS is local-origin restricted by default, but is not authentication.** Configure CORS_ORIGINS for the frontend origin you intentionally trust. Do not expose the API publicly until access control, secrets, logging, rate limits, and deployment settings have been addressed.
 
 ## Project structure
 
-\`\`\`text
+```text
 backend/
   app/
     api/
@@ -170,7 +170,7 @@ frontend/
     test/
 .github/workflows/ci.yml
 docker-compose.yml
-\`\`\`
+```
 
 ## Maintainer
 
