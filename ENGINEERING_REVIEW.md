@@ -8,7 +8,7 @@
 
 CloudPulse is a useful full-stack learning/demo project, but the baseline was not production-ready. Confirmed issues included an incomplete Docker Compose build path, a Python runtime mismatch, a database initialization gap in the container workflow, frontend API calls that ignored the configured base URL, overly permissive CORS, a process-only health response, and known npm dependency advisories.
 
-The PR addresses the deployment workflow, frontend API client, CORS defaults, database-aware health reporting, and debug-mode defaults. In the latest completed PR-head run [39355438960](https://github.com/Emmy1-tech/CloudPulse/actions/runs/39355438960), GitHub Actions verified 41 backend tests, 5 frontend tests, frontend lint/build, the Python dependency audit, and the Docker Compose smoke test. The frontend dependency audit remains the confirmed blocker; the PR is deliberately not merged.
+The PR addresses the deployment workflow, frontend API client, CORS defaults, database-aware health reporting, debug-mode defaults, and a responsive local observability-console redesign. In the latest completed PR-head run [39355438960](https://github.com/Emmy1-tech/CloudPulse/actions/runs/39355438960), GitHub Actions verified 41 backend tests, 5 frontend tests, frontend lint/build, the Python dependency audit, and the Docker Compose smoke test. The frontend dependency audit remains the confirmed blocker; the PR is deliberately not merged.
 
 ## Prioritized findings
 
@@ -26,7 +26,7 @@ The PR addresses the deployment workflow, frontend API client, CORS defaults, da
 
 ## npm audit detail
 
-Evidence: [CI run that emitted the audit report](https://github.com/Emmy1-tech/CloudPulse/actions/runs/39355073046) on the PR branch. The command was `npm audit --json`; it exited non-zero. The lockfile versions below were read from the checked-in lockfile at the time of the audit.
+Evidence: [CI run that emitted the audit report](https://github.com/Emmy1-tech/CloudPulse/actions/runs/39355073046) on the PR branch. The command was `npm audit --audit-level=high` via `npm run audit:security`; it exits non-zero while high/critical advisories remain. The lockfile versions below were read from the checked-in lockfile at the time of the audit.
 
 | Package (locked version) | Severity | Dependency path | Advisory / impact | npm remediation suggestion |
 |---|---|---|---|---|
@@ -58,7 +58,7 @@ The audit's counts represent affected dependency nodes/advisories in the lockfil
 - Made CORS origins configurable, limited defaults to local development origins, disabled credentialed CORS, and added preflight tests.
 - Made `/health` execute `SELECT 1` and return 503 on database errors; added success/failure tests.
 - Expanded README setup, architecture, regression scenario, and limitations.
-- Added an explicit npm audit job. It is intentionally failing while vulnerable dependencies remain.
+- Added an explicit frontend npm audit job and `audit:security` script. It is intentionally failing while high/critical dependency advisories remain.
 
 ## Verification evidence
 
@@ -68,7 +68,7 @@ Commands run by GitHub Actions (not on the user's local machine):
 - `pip-audit` — **No known vulnerabilities found** in the installed backend dependency set on the recorded CI run.
 - `npm test -- --run`, `npm run lint`, `npm run build` — passed on code commit 4711c65.
 - `docker compose config --quiet`, `docker compose up --build --detach`, and HTTP checks against `/health` and the frontend — passed on code commit 4711c65; the health endpoint queried SQLite before reporting ready.
-- `npm audit --json` — **failed**, 14 findings (6 moderate, 6 high, 2 critical). The current audit job continues to fail intentionally until dependency remediation is verified. See [the latest CI run](https://github.com/Emmy1-tech/CloudPulse/actions/runs/39355438960).
+- `npm run audit:security` (`npm audit --audit-level=high`) — **fails as intended while high/critical findings remain**; prior audit output reported 14 findings (6 moderate, 6 high, 2 critical). The current audit job continues to fail intentionally until dependency remediation is verified. A new Dependabot configuration is included to propose ongoing npm and Python dependency updates. See [the latest CI run](https://github.com/Emmy1-tech/CloudPulse/actions/runs/39355438960).
 
 Local reproduction attempt: `git clone https://github.com/Emmy1-tech/CloudPulse.git` failed because the execution container could not resolve `github.com`. I did not claim local test execution; GitHub Actions logs are the source of the test results above.
 
