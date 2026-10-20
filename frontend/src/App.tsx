@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import Dashboard from './components/Dashboard'
+import PortfolioHero from './components/PortfolioHero'
 
 const navigation = [
   { href: '#overview', label: 'Overview', icon: '◫' },
@@ -12,7 +13,9 @@ function App() {
   const isDemoMode = import.meta.env.VITE_DEMO_MODE === 'true'
 
   return (
-    <div className="app-shell">
+    <>
+      <PortfolioHero />
+      <div className="app-shell">
       <aside className="sidebar" aria-label="Main navigation">
         <a className="sidebar-brand" href="#overview" aria-label="CloudPulse home">
           <span className="sidebar-logo" aria-hidden="true">
@@ -54,7 +57,8 @@ function App() {
         </div>
         <Dashboard />
       </main>
-    </div>
+      </div>
+    </>
   )
 }
 
