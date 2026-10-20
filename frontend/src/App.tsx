@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import Dashboard from './components/Dashboard'
 
 const navigation = [
@@ -7,6 +8,9 @@ const navigation = [
 ]
 
 function App() {
+  const [activeSection, setActiveSection] = useState('#overview')
+  const isDemoMode = import.meta.env.VITE_DEMO_MODE === 'true'
+
   return (
     <div className="app-shell">
       <aside className="sidebar" aria-label="Main navigation">
@@ -23,7 +27,7 @@ function App() {
         <div className="sidebar-label">WORKSPACE</div>
         <nav className="sidebar-nav">
           {navigation.map((item, index) => (
-            <a key={item.href} className={index === 0 ? 'nav-link active' : 'nav-link'} href={item.href}>
+            <a key={item.href} className={activeSection === item.href ? 'nav-link active' : 'nav-link'} href={item.href} onClick={() => setActiveSection(item.href)}>
               <span className="nav-icon" aria-hidden="true">{item.icon}</span>
               <span>{item.label}</span>
               {index === 0 && <span className="nav-current" aria-hidden="true" />}
@@ -34,7 +38,7 @@ function App() {
         <div className="sidebar-spacer" />
         <div className="environment-card">
           <span className="environment-icon" aria-hidden="true">⌘</span>
-          <div><strong>Local environment</strong><span>Development workspace</span></div>
+          <div><strong>{isDemoMode ? 'Public demo workspace' : 'Local API workspace'}</strong><span>{isDemoMode ? 'Illustrative sample data' : 'Backend-connected development'}</span></div>
           <span className="live-dot" />
         </div>
         <div className="sidebar-profile">
@@ -46,7 +50,7 @@ function App() {
       <main className="main-panel">
         <div className="topbar">
           <div className="breadcrumb"><span>Workspace</span><span className="breadcrumb-slash">/</span><strong>Overview</strong></div>
-          <div className="topbar-meta"><span className="api-indicator"><i /> API workspace</span><span className="topbar-divider" /><span className="topbar-version">CLOUDPULSE <b>v0.1</b></span></div>
+          <div className="topbar-meta"><span className="api-indicator"><i /> {isDemoMode ? "Demo data only" : "API workspace"}</span><span className="topbar-divider" /><span className="topbar-version">CLOUDPULSE <b>v0.1</b></span></div>
         </div>
         <Dashboard />
       </main>
