@@ -84,7 +84,7 @@ export default function Dashboard() {
 
   return (
     <div className="app-container">
-      <header className="header">
+      <header className="header" id="overview">
         <div className="header-topline">
           <div className="brand-lockup">
             <span className="brand-mark" aria-hidden="true">
@@ -178,7 +178,7 @@ export default function Dashboard() {
         />
       )}
 
-      <div className="incidents-section">
+      <div className="incidents-section" id="incidents">
         <div className="section-heading">
           <div>
             <h2>Incident activity</h2>
@@ -215,7 +215,7 @@ export default function Dashboard() {
         )}
       </div>
 
-      <div className="endpoints-section">
+      <div className="endpoints-section" id="endpoints">
         <div className="section-heading">
           <div>
             <h2>Monitored endpoints</h2>
