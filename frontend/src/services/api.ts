@@ -10,7 +10,7 @@ const api = axios.create({
   },
 });
 
-export const endpointsApi = {
+const backendEndpointsApi = {
   list: async (): Promise<Endpoint[]> => {
     const response = await api.get('/api/endpoints/');
     return response.data;
@@ -62,4 +62,10 @@ export const endpointsApi = {
   },
 };
 
+
+import { demoApi } from './demoApi'
+
+export const endpointsApi = import.meta.env.VITE_DEMO_MODE === 'true' ? demoApi : backendEndpointsApi
+
 export default api;
+
