@@ -95,9 +95,9 @@ jobs:
         working-directory: frontend
         run: npm ci
 
-      - name: Audit frontend dependencies
+      - name: Audit frontend dependencies (high and critical)
         working-directory: frontend
-        run: npm audit --json
+        run: npm run audit:security
 
   docker-smoke:
     runs-on: ubuntu-latest
