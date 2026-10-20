@@ -97,7 +97,7 @@ jobs:
 
       - name: Audit frontend dependencies
         working-directory: frontend
-        run: npm audit --audit-level=moderate
+        run: npm audit --json
 
   docker-smoke:
     runs-on: ubuntu-latest
