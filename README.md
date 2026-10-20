@@ -149,7 +149,7 @@ The endpoint must already exist. API behavior and schemas can be explored at /do
 - **SQLite demo persistence.** There are no migration-managed production schema upgrades, backup strategy, or multi-instance database design.
 - **Database-aware readiness only.** /health runs SELECT 1 against the configured database and returns 503 when that query fails; it does not verify external target health or a background scheduler.
 - **Security audits are time-sensitive.** npm and Python audit results depend on current advisory databases; inspect the latest workflow rather than relying on an old report.
-- **CORS is local-origin restricted by default, but is not authentication.** Configure CORS_ORIGINS for the frontend origin you intentionally trust. Do not expose the API publicly until access control, secrets, logging, rate limits, and deployment settings have been addressed.
+- **CORS is local-origin restricted by default, but is not authentication.** Configure CORS_ORIGINS for the frontend origin you intentionally trust. Debug mode defaults off; enable DEBUG only for local development. Do not expose the API publicly until access control, secrets, logging, rate limits, and deployment settings have been addressed.
 
 ## Project structure
 
