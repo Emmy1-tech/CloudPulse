@@ -1,5 +1,5 @@
 import axios from 'axios';
-import { Endpoint, EndpointCreate, MonitoringResult } from '../types';
+import { Endpoint, EndpointCreate, EndpointStats, Incident, MonitoringResult } from '../types';
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
 
@@ -43,6 +43,21 @@ export const endpointsApi = {
 
   getResults: async (id: number, limit: number = 50): Promise<MonitoringResult[]> => {
     const response = await api.get(`/api/endpoints/${id}/results?limit=${limit}`);
+    return response.data;
+  },
+
+  getIncidents: async (id: number): Promise<Incident[]> => {
+    const response = await api.get(`/api/endpoints/${id}/incidents`);
+    return response.data;
+  },
+
+  updateIncident: async (id: number, status: 'acknowledged' | 'resolved'): Promise<Incident> => {
+    const response = await api.put(`/api/endpoints/incidents/${id}`, { status });
+    return response.data;
+  },
+
+  getStats: async (id: number): Promise<EndpointStats> => {
+    const response = await api.get(`/api/endpoints/${id}/stats`);
     return response.data;
   },
 };
