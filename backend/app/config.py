@@ -29,7 +29,7 @@ class Settings(BaseSettings):
 
     # Application
     app_name: str = "CloudPulse API"
-    debug: bool = True
+    debug: bool = False
 
     model_config = {
         "env_file": ".env",
