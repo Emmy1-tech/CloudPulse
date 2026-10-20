@@ -10,9 +10,13 @@ LEARNING EXERCISE:
 - Add a new endpoint using @app.get decorator and see it appear in /docs
 """
 
-from fastapi import FastAPI
+from fastapi import Depends, FastAPI, HTTPException, status
 from fastapi.middleware.cors import CORSMiddleware
+from sqlalchemy import text
+from sqlalchemy.exc import SQLAlchemyError
+from sqlalchemy.orm import Session
 from app.config import settings
+from app.database import get_db
 from app.api.endpoints import router as endpoints_router
 from app.api.monitoring import router as monitoring_router
 
@@ -51,9 +55,17 @@ async def root():
 
 
 @app.get("/health")
-async def health_check():
-    """Health check endpoint for monitoring."""
-    return {"status": "healthy"}
+def health_check(db: Session = Depends(get_db)):
+    """Return healthy only when the API can query its configured database."""
+    try:
+        db.execute(text("SELECT 1"))
+    except SQLAlchemyError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="Database unavailable",
+        ) from exc
+
+    return {"status": "healthy", "database": "ok"}
 
 
 # Note: API endpoints will be added in Phase 2
