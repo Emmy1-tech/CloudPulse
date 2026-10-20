@@ -18,13 +18,10 @@ export default function Dashboard() {
       setEndpoints(data)
       
       // Load incidents for all endpoints
-      const allIncidents: Incident[] = []
-      for (const endpoint of data) {
-        const endpointIncidents = await fetch(`http://localhost:8000/api/endpoints/${endpoint.id}/incidents`)
-          .then(res => res.json())
-        allIncidents.push(...endpointIncidents)
-      }
-      setIncidents(allIncidents)
+      const incidentGroups = await Promise.all(
+        data.map(endpoint => endpointsApi.getIncidents(endpoint.id))
+      )
+      setIncidents(incidentGroups.flat())
     } catch (error) {
       console.error('Failed to load endpoints:', error)
     } finally {
@@ -71,11 +68,7 @@ export default function Dashboard() {
 
   const handleResolveIncident = async (incidentId: number) => {
     try {
-      await fetch(`http://localhost:8000/api/endpoints/incidents/${incidentId}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ status: 'resolved' })
-      })
+      await endpointsApi.updateIncident(incidentId, 'resolved')
       loadEndpoints()
     } catch (error) {
       console.error('Failed to resolve incident:', error)
@@ -325,7 +318,7 @@ function EndpointDetail({ endpoint, onClose, onCheck, onDelete, onEdit }: {
       try {
         const [resultsData, statsData] = await Promise.all([
           endpointsApi.getResults(endpoint.id, 10),
-          fetch(`http://localhost:8000/api/endpoints/${endpoint.id}/stats`).then(r => r.json())
+          endpointsApi.getStats(endpoint.id)
         ])
         setResults(resultsData)
         setStats(statsData)
