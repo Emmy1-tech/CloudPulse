@@ -44,10 +44,20 @@ def db_session(test_engine):
 
 
 @pytest.fixture(autouse=True)
-def override_database_dependency(db_session):
-    """Route every API request in tests to the isolated test database."""
+def override_database_dependency(db_session, test_engine):
+    """Give each API request its own session on the isolated test database."""
+    testing_session_local = sessionmaker(
+        autocommit=False,
+        autoflush=False,
+        bind=test_engine,
+    )
+
     def override_get_db():
-        yield db_session
+        session = testing_session_local()
+        try:
+            yield session
+        finally:
+            session.close()
 
     app.dependency_overrides[get_db] = override_get_db
     try:
