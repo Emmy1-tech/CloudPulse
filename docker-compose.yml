@@ -1,29 +1,31 @@
-# Docker Compose configuration for CloudPulse
-# This runs both backend and frontend in Docker containers
-
-version: '3.8'
-
 services:
   backend:
     build: ./backend
     ports:
-      - "8000:8000"
+      - "127.0.0.1:8000:8000"
     environment:
       - DATABASE_URL=sqlite:///./data/cloudpulse.db
     volumes:
       - ./backend:/app
       - cloudpulse_data:/app/data
-    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+    command: sh -c "python -c 'from app.database import init_db; init_db()' && exec uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload"
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health', timeout=2)"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+      start_period: 10s
 
   frontend:
     build: ./frontend
     ports:
-      - "3000:3000"
+      - "127.0.0.1:3000:3000"
     environment:
       - VITE_API_URL=http://localhost:8000
     depends_on:
-      - backend
-    command: npm run dev
+      backend:
+        condition: service_healthy
+    command: npm run dev -- --host 0.0.0.0 --port 3000
 
 volumes:
   cloudpulse_data:
