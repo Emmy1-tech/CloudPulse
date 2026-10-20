@@ -8,7 +8,7 @@
 
 CloudPulse is a useful full-stack learning/demo project, but the baseline was not production-ready. Confirmed issues included an incomplete Docker Compose build path, a Python runtime mismatch, a database initialization gap in the container workflow, frontend API calls that ignored the configured base URL, overly permissive CORS, a process-only health response, and known npm dependency advisories.
 
-The PR addresses the deployment workflow, frontend API client, CORS defaults, database-aware health reporting, and debug-mode defaults. On code commit [4711c65](https://github.com/Emmy1-tech/CloudPulse/commit/4711c656e53d66c14e1cd96a98c148b43612ee25), GitHub Actions verified 41 backend tests, frontend tests/lint/build, the Python dependency audit, and the Docker Compose smoke test. The frontend dependency audit remains the confirmed blocker; the PR is deliberately not merged.
+The PR addresses the deployment workflow, frontend API client, CORS defaults, database-aware health reporting, and debug-mode defaults. In the latest completed PR-head run [39355438960](https://github.com/Emmy1-tech/CloudPulse/actions/runs/39355438960), GitHub Actions verified 41 backend tests, 5 frontend tests, frontend lint/build, the Python dependency audit, and the Docker Compose smoke test. The frontend dependency audit remains the confirmed blocker; the PR is deliberately not merged.
 
 ## Prioritized findings
 
@@ -68,7 +68,7 @@ Commands run by GitHub Actions (not on the user's local machine):
 - `pip-audit` — **No known vulnerabilities found** in the installed backend dependency set on the recorded CI run.
 - `npm test -- --run`, `npm run lint`, `npm run build` — passed on code commit 4711c65.
 - `docker compose config --quiet`, `docker compose up --build --detach`, and HTTP checks against `/health` and the frontend — passed on code commit 4711c65; the health endpoint queried SQLite before reporting ready.
-- `npm audit --json` — **failed**, 14 findings (6 moderate, 6 high, 2 critical). The current audit job continues to fail intentionally until dependency remediation is verified. See [the latest CI run](https://github.com/Emmy1-tech/CloudPulse/actions/runs/39355343006).
+- `npm audit --json` — **failed**, 14 findings (6 moderate, 6 high, 2 critical). The current audit job continues to fail intentionally until dependency remediation is verified. See [the latest CI run](https://github.com/Emmy1-tech/CloudPulse/actions/runs/39355438960).
 
 Local reproduction attempt: `git clone https://github.com/Emmy1-tech/CloudPulse.git` failed because the execution container could not resolve `github.com`. I did not claim local test execution; GitHub Actions logs are the source of the test results above.
 
@@ -90,7 +90,7 @@ Local reproduction attempt: `git clone https://github.com/Emmy1-tech/CloudPulse.
 
 **Implementation →** Added the missing container build definition and smoke coverage, aligned Python versions, initialized demo schema before startup, routed requests through the configured API client, restricted CORS defaults, and added database-aware readiness with regression tests.
 
-**Verification →** GitHub Actions verified 41 backend tests, frontend tests/lint/build, the Python audit, and the Docker stack on code commit 4711c65. The explicit npm audit exposed 14 vulnerabilities and correctly leaves the PR blocked.
+**Verification →** The latest completed PR-head run verified 41 backend tests, 5 frontend tests, lint/build, the Python audit, and the Docker stack. The explicit npm audit exposed 14 vulnerabilities and correctly leaves the PR blocked.
 
 **Trade-offs →** The container still uses SQLite and demo-time `create_all`; local-origin defaults and loopback binding support learning but are not a production deployment design. Major frontend dependency migrations are deferred until the lockfile can be updated and tested safely.
 
