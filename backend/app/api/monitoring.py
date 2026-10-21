@@ -8,9 +8,9 @@ This file handles:
 - Incident management
 """
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.orm import Session
-from typing import List, Optional
+from typing import List, Literal, Optional
 from datetime import datetime, timedelta, timezone
 from app.database import get_db
 from app.models import Endpoint, MonitoringResult, Incident
@@ -20,7 +20,11 @@ router = APIRouter(prefix="/api/endpoints", tags=["monitoring"])
 
 
 @router.post("/{endpoint_id}/check", response_model=MonitoringResultResponse)
-def trigger_check(endpoint_id: int, force_status: Optional[str] = None, db: Session = Depends(get_db)):
+def trigger_check(
+    endpoint_id: int,
+    force_status: Optional[Literal["success", "failure"]] = None,
+    db: Session = Depends(get_db),
+):
     """
     Trigger an immediate health check for an endpoint.
 
@@ -89,8 +93,8 @@ def trigger_check(endpoint_id: int, force_status: Optional[str] = None, db: Sess
 @router.get("/{endpoint_id}/results", response_model=List[MonitoringResultResponse])
 def get_monitoring_results(
     endpoint_id: int,
-    limit: int = 50,
-    offset: int = 0,
+    limit: int = Query(default=50, ge=1, le=500),
+    offset: int = Query(default=0, ge=0),
     db: Session = Depends(get_db)
 ):
     """Get monitoring history for an endpoint."""
