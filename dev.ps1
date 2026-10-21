@@ -112,8 +112,17 @@ if (-not (Test-Path $backendPython)) {
     }
 }
 
-& $backendPython -c 'import fastapi, uvicorn, sqlalchemy, pydantic_settings, pytest, httpx2' *> $null
-if ($LASTEXITCODE -ne 0) {
+$dependenciesReady = $false
+try {
+    & $backendPython -c 'import fastapi, uvicorn, sqlalchemy, pydantic_settings, pytest, httpx2' 2>$null
+    $dependenciesReady = $LASTEXITCODE -eq 0
+}
+catch {
+    # On Windows PowerShell, native stderr can become a terminating error.
+    # A fresh virtual environment is expected to fail this import check once.
+    $dependenciesReady = $false
+}
+if (-not $dependenciesReady) {
     Write-Host 'Installing backend and test dependencies (first run or incomplete environment)...' -ForegroundColor Cyan
     & $backendPython -m pip install --upgrade pip
     if ($LASTEXITCODE -ne 0) { throw 'Could not upgrade pip in backend/.venv.' }
