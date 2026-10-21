@@ -77,6 +77,10 @@ jobs:
               if parsed.scheme or parsed.netloc:
                   continue
               relative = parsed.path.lstrip("/")
+              # Vite emits /CloudPulse/... URLs for the project-site base path,
+              # while the uploaded artifact root is the contents of dist/.
+              if relative.startswith("CloudPulse/"):
+                  relative = relative[len("CloudPulse/"):]
               if not (root / relative).is_file():
                   raise SystemExit(f"Missing built asset referenced by index.html: {asset}")
           print(f"Verified index.html and {len(parser.assets)} local JS/CSS asset reference(s).")
