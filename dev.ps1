@@ -78,6 +78,26 @@ function Quote-PowerShellLiteral {
     return "'" + $Value.Replace("'", "''") + "'"
 }
 
+function Invoke-NativeCommand {
+    param(
+        [Parameter(Mandatory)][string]$Executable,
+        [Parameter(Mandatory)][string[]]$Arguments
+    )
+
+    # Windows PowerShell 5.1 can turn native stderr output into a terminating
+    # NativeCommandError when ErrorActionPreference is Stop. Keep output visible,
+    # then use the process exit code for the actual success/failure decision.
+    $previousErrorActionPreference = $ErrorActionPreference
+    try {
+        $ErrorActionPreference = 'Continue'
+        & $Executable @Arguments
+        $script:NativeExitCode = $LASTEXITCODE
+    }
+    finally {
+        $ErrorActionPreference = $previousErrorActionPreference
+    }
+}
+
 Write-Host ''
 Write-Host 'CloudPulse local development startup' -ForegroundColor Cyan
 Write-Host 'Repository: ' -NoNewline
@@ -87,8 +107,8 @@ Write-Host ''
 if (-not (Get-Command py -ErrorAction SilentlyContinue)) {
     throw 'Python Launcher (py.exe) was not found. Install Python 3.12 from python.org and enable the Python Launcher.'
 }
-& py -3.12 --version
-if ($LASTEXITCODE -ne 0) {
+Invoke-NativeCommand -Executable 'py' -Arguments @('-3.12', '--version')
+if ($script:NativeExitCode -ne 0) {
     throw 'Python 3.12 was not found. Install Python 3.12, then run this script again.'
 }
 
@@ -106,8 +126,8 @@ $backendRequirements = Join-Path $backendDir 'requirements.txt'
 $backendDevRequirements = Join-Path $backendDir 'requirements-dev.txt'
 if (-not (Test-Path $backendPython)) {
     Write-Host 'Creating the backend virtual environment...' -ForegroundColor Cyan
-    & py -3.12 -m venv $backendVenv
-    if ($LASTEXITCODE -ne 0) {
+    Invoke-NativeCommand -Executable 'py' -Arguments @('-3.12', '-m', 'venv', $backendVenv)
+    if ($script:NativeExitCode -ne 0) {
         throw 'Could not create backend/.venv. Check that Python 3.12 is installed correctly.'
     }
 }
@@ -124,10 +144,10 @@ catch {
 }
 if (-not $dependenciesReady) {
     Write-Host 'Installing backend and test dependencies (first run or incomplete environment)...' -ForegroundColor Cyan
-    & $backendPython -m pip install --upgrade pip
-    if ($LASTEXITCODE -ne 0) { throw 'Could not upgrade pip in backend/.venv.' }
-    & $backendPython -m pip install -r $backendRequirements -r $backendDevRequirements
-    if ($LASTEXITCODE -ne 0) { throw 'Backend dependency installation failed. Review the command output and retry.' }
+    Invoke-NativeCommand -Executable $backendPython -Arguments @('-m', 'pip', 'install', '--upgrade', 'pip')
+    if ($script:NativeExitCode -ne 0) { throw 'Could not upgrade pip in backend/.venv.' }
+    Invoke-NativeCommand -Executable $backendPython -Arguments @('-m', 'pip', 'install', '-r', $backendRequirements, '-r', $backendDevRequirements)
+    if ($script:NativeExitCode -ne 0) { throw 'Backend dependency installation failed. Review the command output and retry.' }
 }
 
 $backendEnv = Join-Path $backendDir '.env'
@@ -155,8 +175,8 @@ if ($needsNpmInstall) {
     Write-Host 'Installing frontend dependencies with npm ci...' -ForegroundColor Cyan
     Push-Location $frontendDir
     try {
-        & $npmCommand ci
-        if ($LASTEXITCODE -ne 0) { throw 'Frontend dependency installation failed. Review npm output and retry.' }
+        Invoke-NativeCommand -Executable $npmCommand -Arguments @('ci')
+        if ($script:NativeExitCode -ne 0) { throw 'Frontend dependency installation failed. Review npm output and retry.' }
     }
     finally {
         Pop-Location
@@ -174,8 +194,8 @@ else {
     Write-Host 'Initializing SQLite tables (existing database files are preserved)...' -ForegroundColor Cyan
     Push-Location $backendDir
     try {
-        & $backendPython -c 'from app.database import init_db; init_db()'
-        if ($LASTEXITCODE -ne 0) { throw 'SQLite initialization failed. Review backend/.env and the backend terminal output.' }
+        Invoke-NativeCommand -Executable $backendPython -Arguments @('-c', 'from app.database import init_db; init_db()')
+        if ($script:NativeExitCode -ne 0) { throw 'SQLite initialization failed. Review backend/.env and the backend terminal output.' }
     }
     finally {
         Pop-Location
