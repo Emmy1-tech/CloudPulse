@@ -6,7 +6,7 @@
 
 The interactive frontend is published as a static site at [emmy1-tech.github.io/CloudPulse](https://emmy1-tech.github.io/CloudPulse/) using [GitHub Pages](DEPLOYMENT.md). The hosted build uses clearly labelled sample data stored in each visitor's browser. It does not contact configured endpoint URLs or expose the FastAPI API.
 
-The Pages build and deployment now run after all CI checks pass on pushes to `main`. CI checks also run for pull requests, but the repository currently has no enforcing branch-protection rule requiring a pull request or approval; direct pushes are not blocked by GitHub settings. See [deployment instructions](DEPLOYMENT.md) for the verified setup and current boundaries.
+On pull requests, CI builds the public demo and verifies its entry point and asset paths, without publishing. A separate Pages workflow publishes only after `CloudPulse CI` succeeds on `main` (or an explicit manual dispatch from `main`). The repository currently has no enforcing branch-protection rule requiring a pull request or approval; direct pushes are not blocked by GitHub settings. See [deployment instructions](DEPLOYMENT.md) for the verified setup and current boundaries.
 
 > **Scope warning:** CloudPulse is not production monitoring software. All check outcomes and response times are simulated; no requests are sent to endpoint URLs. Authentication and authorization are not implemented, and API data is not isolated by user. Run the backend locally only; do not expose it to a network or store sensitive data.
 
@@ -117,7 +117,7 @@ npm run build
 npm run audit:security
 ```
 
-GitHub Actions runs backend tests and Ruff, verifies model-schema registration using a dedicated ignored SQLite path, audits Python and npm dependencies, runs frontend tests/lint and builds both modes, and smoke-tests Compose including the frontend-to-backend API proxy. On `main`, the Pages build/deploy jobs wait for all of those checks. CI does not deploy pull-request builds.
+GitHub Actions runs backend tests and Ruff, verifies model-schema registration using a dedicated ignored SQLite path, audits Python and npm dependencies, runs frontend tests/lint and builds both modes, verifies the public demo's entry point and asset paths, and smoke-tests Compose including the frontend-to-backend API proxy. A separate Pages workflow publishes only after successful `CloudPulse CI` on `main`; pull requests validate the demo build but do not publish.
 
 The frontend manifest and lockfile were upgraded to remediate previously reported npm audit findings, and the audit threshold remains high/critical rather than being suppressed. See [the engineering review](ENGINEERING_REVIEW.md) and [GitHub Actions](https://github.com/Emmy1-tech/CloudPulse/actions) for current results. A successful build or test run does not by itself establish that the app is production-ready.
 

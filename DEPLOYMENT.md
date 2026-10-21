@@ -6,11 +6,11 @@ The free-tier public site is a **static frontend demo** on GitHub Pages:
 
 [https://emmy1-tech.github.io/CloudPulse/](https://emmy1-tech.github.io/CloudPulse/)
 
-The repository's Pages site is configured to build with GitHub Actions, is public with HTTPS enforcement, and the current published URL returned HTTP 200. The latest successful Pages run at this review was [run 39536224114](https://github.com/Emmy1-tech/CloudPulse/actions/runs/39536224114), which deployed main commit `c0061b7`.
+The repository's Pages site is configured to build with GitHub Actions, is public with HTTPS enforcement, and the current published URL returned HTTP 200. The latest successful Pages run at this review was [run 39542698697](https://github.com/Emmy1-tech/CloudPulse/actions/runs/39542698697), which deployed main commit `5183c67`.
 
 ### Build and deployment workflow
 
-Pages deployment is part of [`.github/workflows/ci.yml`](.github/workflows/ci.yml). On pushes to `main`, the Pages build and deploy jobs run only after backend tests and Ruff, Python and npm dependency audits, frontend tests/lint/builds, and the Docker Compose smoke test all pass. Pull requests run those checks but do not publish. A manual `workflow_dispatch` from `main` follows the same checks before publishing; dispatches from other branches do not publish.
+The CI workflow [`.github/workflows/ci.yml`](.github/workflows/ci.yml) runs tests, audits, Ruff, frontend builds, a PR-visible static-demo asset check, and the Docker Compose smoke test. Pages publication is handled separately by [`.github/workflows/deploy-pages.yml`](.github/workflows/deploy-pages.yml), which is triggered only after a successful `CloudPulse CI` run on `main`; an explicit manual dispatch from `main` is also supported. Pull requests verify the static demo build and asset paths but do not invoke the deployment workflow or publish a site.
 
 GitHub Pages was initially missing/not configured for Actions. The first failure, [run 39513063035](https://github.com/Emmy1-tech/CloudPulse/actions/runs/39513063035), stopped at `Configure GitHub Pages` with a 404 before build or deploy. An earlier attempt to create the site with the workflow token failed because that token lacked repository-administration permission ([run 39509392240](https://github.com/Emmy1-tech/CloudPulse/actions/runs/39509392240)). The one-time setup has since been completed and the successful deployment above verifies it. If the Pages site is disabled again, a repository administrator must use [Settings → Pages](https://github.com/Emmy1-tech/CloudPulse/settings/pages) and set **Source** to **GitHub Actions**; the workflow token should not be used to create the site.
 

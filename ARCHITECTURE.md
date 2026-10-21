@@ -54,6 +54,6 @@ FastAPI routes in `backend/app/api/` validate request/response data with Pydanti
 
 ## Deployment boundary
 
-The free-tier public deployment is a static React build on GitHub Pages. It runs in browser-local demo mode and does not deploy or expose FastAPI, SQLite, or a public backend. In GitHub Actions, the Pages build/deploy jobs wait for the backend tests, dependency audits, frontend tests/lint/build, and Docker Compose smoke check to pass.
+The free-tier public deployment is a static React build on GitHub Pages. It runs in browser-local demo mode and does not deploy or expose FastAPI, SQLite, or a public backend. Pull-request CI builds the public demo and verifies its entry point and asset paths. A separate deployment workflow publishes only after the main-branch CI workflow succeeds (or a maintainer explicitly dispatches it from `main`).
 
 See [README.md](README.md) for local commands and [DEPLOYMENT.md](DEPLOYMENT.md) for the current Pages setup and verification status.

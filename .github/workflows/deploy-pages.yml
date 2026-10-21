@@ -1,0 +1,169 @@
+name: Deploy CloudPulse portfolio demo
+
+on:
+  workflow_run:
+    workflows: ["CloudPulse CI"]
+    types: [completed]
+    branches: [main]
+  workflow_dispatch:
+
+# Keep the default token read-only. Each job opts into only the permissions it needs.
+permissions:
+  contents: read
+
+concurrency:
+  group: github-pages
+  cancel-in-progress: true
+
+jobs:
+  build:
+    if: >-
+      (github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main') ||
+      (github.event_name == 'workflow_run' &&
+       github.event.workflow_run.event == 'push' &&
+       github.event.workflow_run.head_branch == 'main' &&
+       github.event.workflow_run.conclusion == 'success')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pages: read
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          ref: ${{ github.event_name == 'workflow_run' && github.event.workflow_run.head_sha || github.sha }}
+          persist-credentials: false
+
+      # Pages must be enabled once in repository Settings > Pages.
+      # This action reads the Pages configuration; it does not enable Pages.
+      - name: Configure GitHub Pages
+        uses: actions/configure-pages@983d7736d9b0ae728b81ab479565c72886d7745b # v5
+
+      - name: Set up Node.js
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install dependencies
+        working-directory: frontend
+        run: npm ci
+
+      - name: Build the public demo
+        working-directory: frontend
+        run: npm run build
+        env:
+          VITE_DEMO_MODE: 'true'
+
+      - name: Verify the static-site artifact
+        run: |
+          test -s frontend/dist/index.html
+          python - <<'PY'
+          from html.parser import HTMLParser
+          from pathlib import Path
+          from urllib.parse import urlparse
+
+          root = Path("frontend/dist")
+          html = (root / "index.html").read_text(encoding="utf-8")
+
+          class AssetParser(HTMLParser):
+              def __init__(self):
+                  super().__init__()
+                  self.assets = []
+
+              def handle_starttag(self, tag, attrs):
+                  attrs = dict(attrs)
+                  if tag == "script" and attrs.get("src"):
+                      self.assets.append(attrs["src"])
+                  if tag == "link" and attrs.get("href") and attrs.get("rel") == "stylesheet":
+                      self.assets.append(attrs["href"])
+
+          parser = AssetParser()
+          parser.feed(html)
+          if not parser.assets:
+              raise SystemExit("index.html references no JavaScript or CSS assets")
+          for asset in parser.assets:
+              parsed = urlparse(asset)
+              if parsed.scheme or parsed.netloc:
+                  continue
+              relative = parsed.path.lstrip("/")
+              # Vite emits /CloudPulse/... URLs for the project-site base path,
+              # while the uploaded artifact root is the contents of dist/.
+              if relative.startswith("CloudPulse/"):
+                  relative = relative[len("CloudPulse/"):]
+              if not (root / relative).is_file():
+                  raise SystemExit(f"Missing built asset referenced by index.html: {asset}")
+          print(f"Verified index.html and {len(parser.assets)} local JS/CSS asset reference(s).")
+          PY
+
+      - name: Upload static site
+        uses: actions/upload-pages-artifact@56afc609e74202658d3ffba0e8f6dda462b719fa # v3
+        with:
+          path: frontend/dist
+
+  deploy:
+    if: >-
+      (github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main') ||
+      (github.event_name == 'workflow_run' &&
+       github.event.workflow_run.event == 'push' &&
+       github.event.workflow_run.head_branch == 'main' &&
+       github.event.workflow_run.conclusion == 'success')
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    needs: build
+    permissions:
+      pages: write
+      id-token: write
+    steps:
+      - name: Publish website
+        id: deployment
+        uses: actions/deploy-pages@d6db90164ac5ed86f2b6aed7e0febac5b3c0c03e # v4
+
+      - name: Verify the published website and assets
+        env:
+          SITE_URL: ${{ steps.deployment.outputs.page_url }}
+        run: |
+          set -euo pipefail
+          echo "Checking published CloudPulse site: $SITE_URL"
+          curl --fail --silent --show-error --location --retry 10 --retry-all-errors --retry-delay 10 "$SITE_URL" --output /tmp/cloudpulse-index.html
+          python - <<'PY'
+          import os
+          from html.parser import HTMLParser
+          from pathlib import Path
+          from urllib.parse import urljoin
+          from urllib.request import urlopen
+
+          site_url = os.environ["SITE_URL"]
+          html = Path("/tmp/cloudpulse-index.html").read_text(encoding="utf-8")
+
+          class AssetParser(HTMLParser):
+              def __init__(self):
+                  super().__init__()
+                  self.assets = []
+
+              def handle_starttag(self, tag, attrs):
+                  attrs = dict(attrs)
+                  if tag == "script" and attrs.get("src"):
+                      self.assets.append(attrs["src"])
+                  if tag == "link" and attrs.get("href") and "stylesheet" in attrs.get("rel", "").split():
+                      self.assets.append(attrs["href"])
+
+          parser = AssetParser()
+          parser.feed(html)
+          if "CloudPulse" not in html:
+              raise SystemExit("Published HTML does not contain the expected CloudPulse page")
+          if not parser.assets:
+              raise SystemExit("Published HTML references no JavaScript or CSS assets")
+
+          for asset in parser.assets:
+              asset_url = urljoin(site_url, asset)
+              with urlopen(asset_url, timeout=20) as response:
+                  if response.status != 200:
+                      raise SystemExit(f"Asset returned HTTP {response.status}: {asset_url}")
+              print(f"HTTP 200 {asset_url}")
+
+          print(f"Live-site smoke test passed: HTML fetched and {len(parser.assets)} asset(s) returned HTTP 200.")
+          PY
