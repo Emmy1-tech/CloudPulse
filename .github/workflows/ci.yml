@@ -165,3 +165,42 @@ jobs:
         run: npm run build
         env:
           VITE_DEMO_MODE: 'true'
+
+      - name: Verify public demo entry point and asset paths
+        working-directory: frontend
+        run: |
+          test -s dist/index.html
+          python - <<'PY'
+          from html.parser import HTMLParser
+          from pathlib import Path
+          from urllib.parse import urlparse
+
+          root = Path("dist")
+
+          class AssetParser(HTMLParser):
+              def __init__(self):
+                  super().__init__()
+                  self.assets = []
+
+              def handle_starttag(self, tag, attrs):
+                  attrs = dict(attrs)
+                  if tag == "script" and attrs.get("src"):
+                      self.assets.append(attrs["src"])
+                  if tag == "link" and attrs.get("href") and attrs.get("rel") == "stylesheet":
+                      self.assets.append(attrs["href"])
+
+          parser = AssetParser()
+          parser.feed((root / "index.html").read_text(encoding="utf-8"))
+          if not parser.assets:
+              raise SystemExit("index.html references no JavaScript or CSS assets")
+          for asset in parser.assets:
+              parsed = urlparse(asset)
+              if parsed.scheme or parsed.netloc:
+                  continue
+              relative = parsed.path.lstrip("/")
+              if relative.startswith("CloudPulse/"):
+                  relative = relative[len("CloudPulse/"):]
+              if not (root / relative).is_file():
+                  raise SystemExit(f"Missing built asset referenced by index.html: {asset}")
+          print(f"Verified index.html and {len(parser.assets)} local JS/CSS asset reference(s).")
+          PY
