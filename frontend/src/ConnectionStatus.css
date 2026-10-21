@@ -1,0 +1,18 @@
+.api-indicator--checking i {
+  background: #d9a34f;
+  box-shadow: 0 0 0 4px #d9a34f1a;
+}
+
+.api-indicator--offline i {
+  background: #e16475;
+  box-shadow: 0 0 0 4px #e164751a;
+}
+
+.api-indicator--demo i {
+  background: #8798b1;
+  box-shadow: 0 0 0 4px #8798b11a;
+}
+
+.api-indicator--offline {
+  color: #b64154;
+}
