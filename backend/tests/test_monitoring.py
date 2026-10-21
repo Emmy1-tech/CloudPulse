@@ -287,3 +287,18 @@ class TestIncidents:
 
             # Should still have same number of incidents (no duplicate)
             assert len(incidents) == initial_count
+
+
+class TestMonitoringQueryValidation:
+    """Reject invalid query parameters instead of silently using demo defaults."""
+
+    def test_trigger_check_rejects_unknown_forced_status(self, db_session: Session):
+        with TestClient(app) as client:
+            response = client.post("/api/endpoints/1/check?force_status=maybe")
+        assert response.status_code == 422
+
+    @pytest.mark.parametrize("query", ["limit=0", "limit=501", "offset=-1"])
+    def test_results_reject_invalid_pagination(self, db_session: Session, query: str):
+        with TestClient(app) as client:
+            response = client.get(f"/api/endpoints/1/results?{query}")
+        assert response.status_code == 422
