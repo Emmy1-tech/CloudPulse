@@ -1,6 +1,8 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import Dashboard from './components/Dashboard'
 import PortfolioHero from './components/PortfolioHero'
+import api from './services/api'
+import './ConnectionStatus.css'
 
 const navigation = [
   { href: '#overview', label: 'Overview', icon: '◫' },
@@ -8,9 +10,40 @@ const navigation = [
   { href: '#incidents', label: 'Incidents', icon: '△' },
 ]
 
+type ApiStatus = 'checking' | 'online' | 'offline'
+
 function App() {
   const [activeSection, setActiveSection] = useState('#overview')
   const isDemoMode = import.meta.env.VITE_DEMO_MODE === 'true'
+  const [apiStatus, setApiStatus] = useState<ApiStatus>('checking')
+  const apiStatusLabel = isDemoMode
+    ? 'Demo data only'
+    : apiStatus === 'checking'
+      ? 'Checking backend'
+      : apiStatus === 'online'
+        ? 'Backend connected'
+        : 'Backend unavailable'
+
+  useEffect(() => {
+    if (isDemoMode) return
+
+    let isMounted = true
+    const checkHealth = async () => {
+      try {
+        const response = await api.get<{ status?: string }>('/health', { timeout: 2500 })
+        if (isMounted) setApiStatus(response.data?.status === 'healthy' ? 'online' : 'offline')
+      } catch {
+        if (isMounted) setApiStatus('offline')
+      }
+    }
+
+    void checkHealth()
+    const interval = window.setInterval(() => void checkHealth(), 30000)
+    return () => {
+      isMounted = false
+      window.clearInterval(interval)
+    }
+  }, [isDemoMode])
 
   return (
     <>
@@ -41,7 +74,7 @@ function App() {
         <div className="sidebar-spacer" />
         <div className="environment-card">
           <span className="environment-icon" aria-hidden="true">⌘</span>
-          <div><strong>{isDemoMode ? 'Public demo workspace' : 'Local API workspace'}</strong><span>{isDemoMode ? 'Illustrative sample data' : 'Backend-connected development'}</span></div>
+          <div><strong>{isDemoMode ? 'Public demo workspace' : 'Local API workspace'}</strong><span>{isDemoMode ? 'Illustrative sample data' : 'Connection status shown above'}</span></div>
           <span className="live-dot" />
         </div>
         <div className="sidebar-profile">
@@ -53,7 +86,7 @@ function App() {
       <main className="main-panel">
         <div className="topbar">
           <div className="breadcrumb"><span>Workspace</span><span className="breadcrumb-slash">/</span><strong>Overview</strong></div>
-          <div className="topbar-meta"><span className="api-indicator"><i /> {isDemoMode ? "Demo data only" : "API workspace"}</span><span className="topbar-divider" /><span className="topbar-version">CLOUDPULSE <b>v0.1</b></span></div>
+          <div className="topbar-meta"><span className={`api-indicator api-indicator--${isDemoMode ? 'demo' : apiStatus}`} role="status" aria-live="polite"><i aria-hidden="true" /> {apiStatusLabel}</span><span className="topbar-divider" /><span className="topbar-version">CLOUDPULSE <b>v0.1</b></span></div>
         </div>
         <Dashboard />
       </main>
