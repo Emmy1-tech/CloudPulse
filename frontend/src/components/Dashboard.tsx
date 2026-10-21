@@ -1,10 +1,11 @@
 import { useState, useEffect } from 'react'
 import { endpointsApi } from '../services/api'
-import { Endpoint, Incident, EndpointCreate, MonitoringResult, EndpointStats } from '../types'
+import { Endpoint, Incident, EndpointCreate, EndpointUpdate, MonitoringResult, EndpointStats } from '../types'
 import './Dashboard.css'
 import '../App.css'
 
 export default function Dashboard() {
+  const isDemoMode = import.meta.env.VITE_DEMO_MODE === 'true'
   const [endpoints, setEndpoints] = useState<Endpoint[]>([])
   const [incidents, setIncidents] = useState<Incident[]>([])
   const [loading, setLoading] = useState(true)
@@ -41,36 +42,55 @@ export default function Dashboard() {
     loadEndpoints()
   }, [])
 
-  const handleCreate = async (data: EndpointCreate) => {
-    try {
-      await endpointsApi.create(data)
-      setShowForm(false)
-      loadEndpoints()
-    } catch (error) {
-      console.error('Failed to create endpoint:', error)
-      alert('Failed to create endpoint')
-    }
+  const handleCreate = async (data: EndpointCreate): Promise<void> => {
+    await endpointsApi.create(data)
+    setShowForm(false)
+    await loadEndpoints()
   }
 
-  const handleDelete = async (id: number) => {
-    if (!confirm('Are you sure you want to delete this endpoint?')) return
-    
+  const handleDelete = async (id: number): Promise<boolean> => {
+    if (!confirm('Are you sure you want to delete this endpoint?')) return false
+
     try {
       await endpointsApi.delete(id)
-      loadEndpoints()
+      await loadEndpoints()
+      return true
     } catch (error) {
       console.error('Failed to delete endpoint:', error)
-      alert('Failed to delete endpoint')
+      setLoadError('Could not delete the endpoint. Please retry.')
+      return false
     }
   }
 
-  const handleCheck = async (id: number, forceStatus?: 'success' | 'failure') => {
+  const handleCheck = async (id: number, forceStatus?: 'success' | 'failure'): Promise<void> => {
+    const endpoint = endpoints.find(item => item.id === id)
+    if (endpoint && !endpoint.is_active) {
+      setLoadError('Enable this endpoint before running a check.')
+      return
+    }
     try {
       await endpointsApi.check(id, forceStatus)
-      loadEndpoints()
+      await loadEndpoints()
     } catch (error) {
       console.error('Failed to check endpoint:', error)
-      alert('Failed to check endpoint')
+      setLoadError('Could not record the simulated check. Please retry.')
+    }
+  }
+
+  const handleUpdate = async (id: number, data: EndpointUpdate): Promise<void> => {
+    await endpointsApi.update(id, data)
+    setEditingEndpoint(null)
+    setShowForm(false)
+    await loadEndpoints()
+  }
+
+  const handleToggleEndpoint = async (endpoint: Endpoint): Promise<void> => {
+    try {
+      await endpointsApi.update(endpoint.id, { is_active: !endpoint.is_active })
+      await loadEndpoints()
+    } catch (error) {
+      console.error('Failed to update endpoint status:', error)
+      setLoadError('Could not update the endpoint status. Please retry.')
     }
   }
 
@@ -99,6 +119,9 @@ export default function Dashboard() {
   }
 
   const openIncidents = incidents.filter(i => i.status === 'open' || i.status === 'acknowledged')
+  const currentSelectedEndpoint = selectedEndpoint
+    ? endpoints.find(endpoint => endpoint.id === selectedEndpoint.id) ?? selectedEndpoint
+    : null
   const filteredEndpoints = endpoints.filter(endpoint => {
     const query = searchQuery.trim().toLowerCase()
     const matchesQuery = !query || endpoint.name.toLowerCase().includes(query) || endpoint.url.toLowerCase().includes(query)
@@ -134,14 +157,17 @@ export default function Dashboard() {
             </span>
             <span>CloudPulse</span>
           </div>
-          <span className="environment-pill">Demo environment</span>
+          <span className="environment-pill">{isDemoMode ? 'Public demo' : 'Local API workspace'}</span>
         </div>
         <div className="header-copy">
           <p className="eyebrow">OPERATIONS OVERVIEW</p>
           <h1>Your services, at a glance.</h1>
           <p className="subtitle">
             A clear view of your registered endpoints and incident activity.
-            Monitoring outcomes in this portfolio demo are simulated.
+            Monitoring outcomes are simulated in both modes.{' '}
+            {isDemoMode
+              ? 'This browser stores illustrative sample data locally.'
+              : 'The configured API stores this workspace but does not contact listed URLs.'}
           </p>
         </div>
         {openIncidents.length > 0 && (
@@ -234,12 +260,9 @@ export default function Dashboard() {
       {showForm && (
         <EndpointForm
           endpoint={editingEndpoint}
-          onSave={editingEndpoint ? async (data: EndpointCreate) => {
-            await endpointsApi.update(editingEndpoint.id, data)
-            setEditingEndpoint(null)
-            setShowForm(false)
-            loadEndpoints()
-          } : handleCreate}
+          onSave={editingEndpoint
+            ? (data: EndpointCreate) => handleUpdate(editingEndpoint.id, data)
+            : handleCreate}
           onCancel={() => {
             setShowForm(false)
             setEditingEndpoint(null)
@@ -247,17 +270,18 @@ export default function Dashboard() {
         />
       )}
 
-      {selectedEndpoint && (
+      {currentSelectedEndpoint && (
         <EndpointDetail
-          endpoint={selectedEndpoint}
+          endpoint={currentSelectedEndpoint}
           onClose={() => setSelectedEndpoint(null)}
-          onCheck={(forceStatus) => handleCheck(selectedEndpoint.id, forceStatus)}
-          onDelete={() => {
-            handleDelete(selectedEndpoint.id)
-            setSelectedEndpoint(null)
+          onCheck={(forceStatus) => handleCheck(currentSelectedEndpoint.id, forceStatus)}
+          onToggle={() => handleToggleEndpoint(currentSelectedEndpoint)}
+          onDelete={async () => {
+            const deleted = await handleDelete(currentSelectedEndpoint.id)
+            if (deleted) setSelectedEndpoint(null)
           }}
           onEdit={() => {
-            setEditingEndpoint(selectedEndpoint)
+            setEditingEndpoint(currentSelectedEndpoint)
             setShowForm(true)
             setSelectedEndpoint(null)
           }}
@@ -352,9 +376,11 @@ export default function Dashboard() {
                 <div className="actions">
                   <button
                     className="button button-success"
+                    disabled={!endpoint.is_active}
+                    title={endpoint.is_active ? 'Run a simulated check' : 'Enable this endpoint before checking'}
                     onClick={(e) => {
                       e.stopPropagation()
-                      handleCheck(endpoint.id)
+                      void handleCheck(endpoint.id)
                     }}
                   >
                     Check Now
@@ -363,10 +389,19 @@ export default function Dashboard() {
                     className="button button-danger"
                     onClick={(e) => {
                       e.stopPropagation()
-                      handleDelete(endpoint.id)
+                      void handleDelete(endpoint.id)
                     }}
                   >
                     Delete
+                  </button>
+                  <button
+                    className="button"
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      void handleToggleEndpoint(endpoint)
+                    }}
+                  >
+                    {endpoint.is_active ? 'Disable' : 'Enable'}
                   </button>
                 </div>
               </div>
@@ -384,9 +419,11 @@ export default function Dashboard() {
 
 function EndpointForm({ endpoint, onSave, onCancel }: {
   endpoint: Endpoint | null;
-  onSave: (data: EndpointCreate) => void;
+  onSave: (data: EndpointCreate) => Promise<void>;
   onCancel: () => void;
 }) {
+  const [saving, setSaving] = useState(false)
+  const [saveError, setSaveError] = useState<string | null>(null)
   const [formData, setFormData] = useState({
     name: endpoint?.name || '',
     url: endpoint?.url || '',
@@ -395,19 +432,30 @@ function EndpointForm({ endpoint, onSave, onCancel }: {
     check_interval: endpoint?.check_interval || 60
   })
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    onSave(formData)
+    setSaving(true)
+    setSaveError(null)
+    try {
+      await onSave(formData)
+    } catch (error) {
+      console.error('Failed to save endpoint:', error)
+      setSaveError('Could not save the endpoint. Check your connection and try again.')
+    } finally {
+      setSaving(false)
+    }
   }
 
   return (
     <div className="modal-overlay">
-      <div className="modal">
-        <h2>{endpoint ? 'Edit Endpoint' : 'Add Endpoint'}</h2>
+      <div className="modal" role="dialog" aria-modal="true" aria-labelledby="endpoint-form-title">
+        <h2 id="endpoint-form-title">{endpoint ? 'Edit Endpoint' : 'Add Endpoint'}</h2>
+        {saveError && <p className="error-banner" role="alert">{saveError}</p>}
         <form onSubmit={handleSubmit}>
           <div className="form-group">
-            <label>Name:</label>
+            <label htmlFor="endpoint-name">Name:</label>
             <input
+              id="endpoint-name"
               type="text"
               value={formData.name}
               onChange={(e) => setFormData({...formData, name: e.target.value})}
@@ -415,8 +463,9 @@ function EndpointForm({ endpoint, onSave, onCancel }: {
             />
           </div>
           <div className="form-group">
-            <label>URL:</label>
+            <label htmlFor="endpoint-url">URL:</label>
             <input
+              id="endpoint-url"
               type="url"
               value={formData.url}
               onChange={(e) => setFormData({...formData, url: e.target.value})}
@@ -424,8 +473,9 @@ function EndpointForm({ endpoint, onSave, onCancel }: {
             />
           </div>
           <div className="form-group">
-            <label>Method:</label>
+            <label htmlFor="endpoint-method">Method:</label>
             <select
+              id="endpoint-method"
               value={formData.method}
               onChange={(e) => setFormData({...formData, method: e.target.value})}
             >
@@ -436,28 +486,34 @@ function EndpointForm({ endpoint, onSave, onCancel }: {
             </select>
           </div>
           <div className="form-group">
-            <label>Expected Status:</label>
+            <label htmlFor="endpoint-expected-status">Expected Status:</label>
             <input
+              id="endpoint-expected-status"
               type="number"
               value={formData.expected_status}
               onChange={(e) => setFormData({...formData, expected_status: parseInt(e.target.value)})}
               min="100"
               max="599"
+              required
             />
           </div>
           <div className="form-group">
-            <label>Check Interval (seconds):</label>
+            <label htmlFor="endpoint-check-interval">Check Interval (seconds):</label>
             <input
+              id="endpoint-check-interval"
               type="number"
               value={formData.check_interval}
               onChange={(e) => setFormData({...formData, check_interval: parseInt(e.target.value)})}
               min="10"
               max="3600"
+              required
             />
           </div>
           <div className="form-actions">
-            <button type="submit" className="button button-primary">Save</button>
-            <button type="button" className="button" onClick={onCancel}>Cancel</button>
+            <button type="submit" className="button button-primary" disabled={saving}>
+              {saving ? 'Saving…' : 'Save'}
+            </button>
+            <button type="button" className="button" onClick={onCancel} disabled={saving}>Cancel</button>
           </div>
         </form>
       </div>
@@ -465,38 +521,53 @@ function EndpointForm({ endpoint, onSave, onCancel }: {
   )
 }
 
-function EndpointDetail({ endpoint, onClose, onCheck, onDelete, onEdit }: {
+function EndpointDetail({ endpoint, onClose, onCheck, onToggle, onDelete, onEdit }: {
   endpoint: Endpoint;
   onClose: () => void;
-  onCheck: (forceStatus?: 'success' | 'failure') => void;
-  onDelete: () => void;
+  onCheck: (forceStatus?: 'success' | 'failure') => Promise<void>;
+  onToggle: () => Promise<void>;
+  onDelete: () => Promise<void>;
   onEdit: () => void;
 }) {
   const [results, setResults] = useState<MonitoringResult[]>([])
   const [stats, setStats] = useState<EndpointStats | null>(null)
+  const [detailsLoading, setDetailsLoading] = useState(false)
+  const [detailsError, setDetailsError] = useState<string | null>(null)
+
+  const loadData = async () => {
+    setDetailsLoading(true)
+    setDetailsError(null)
+    try {
+      const [resultsData, statsData] = await Promise.all([
+        endpointsApi.getResults(endpoint.id, 10),
+        endpointsApi.getStats(endpoint.id)
+      ])
+      setResults(resultsData)
+      setStats(statsData)
+    } catch (error) {
+      console.error('Failed to load endpoint details:', error)
+      setDetailsError('Could not load check history. Please retry.')
+    } finally {
+      setDetailsLoading(false)
+    }
+  }
 
   useEffect(() => {
-    const loadData = async () => {
-      try {
-        const [resultsData, statsData] = await Promise.all([
-          endpointsApi.getResults(endpoint.id, 10),
-          endpointsApi.getStats(endpoint.id)
-        ])
-        setResults(resultsData)
-        setStats(statsData)
-      } catch (error) {
-        console.error('Failed to load endpoint details:', error)
-      }
-    }
-    loadData()
+    void loadData()
   }, [endpoint.id])
+
+  const runCheck = async (forceStatus?: 'success' | 'failure') => {
+    if (!endpoint.is_active) return
+    await onCheck(forceStatus)
+    await loadData()
+  }
 
   return (
     <div className="modal-overlay">
-      <div className="modal large">
+      <div className="modal large" role="dialog" aria-modal="true" aria-labelledby="endpoint-detail-title" aria-busy={detailsLoading}>
         <div className="modal-header">
-          <h2>{endpoint.name}</h2>
-          <button className="button" onClick={onClose}>×</button>
+          <h2 id="endpoint-detail-title">{endpoint.name}</h2>
+          <button className="button" onClick={onClose} aria-label="Close endpoint details">×</button>
         </div>
         
         <div className="endpoint-info">
@@ -524,7 +595,7 @@ function EndpointDetail({ endpoint, onClose, onCheck, onDelete, onEdit }: {
               </div>
               <div className="stat">
                 <span className="stat-label">Avg Response Time</span>
-                <span className="stat-value">{stats.avg_response_time}ms</span>
+                <span className="stat-value">{stats.avg_response_time === null ? '—' : `${stats.avg_response_time}ms`}</span>
               </div>
             </div>
           </div>
@@ -532,7 +603,11 @@ function EndpointDetail({ endpoint, onClose, onCheck, onDelete, onEdit }: {
 
         <div className="recent-checks">
           <h3>Recent Checks</h3>
-          {results.length === 0 ? (
+          {detailsError ? (
+            <p role="alert">{detailsError} <button className="button" onClick={() => void loadData()}>Retry</button></p>
+          ) : detailsLoading && results.length === 0 ? (
+            <p>Loading check history…</p>
+          ) : results.length === 0 ? (
             <p>No checks yet</p>
           ) : (
             <div className="checks-list">
@@ -552,19 +627,24 @@ function EndpointDetail({ endpoint, onClose, onCheck, onDelete, onEdit }: {
 
         <div className="simulation-controls">
           <h3>Simulation Controls</h3>
+          {!endpoint.is_active && (
+            <p className="simulation-note" role="status">This endpoint is disabled. Enable it to run manual checks.</p>
+          )}
           <p className="simulation-note">
             <strong>⚠️ SIMULATED MONITORING:</strong> Use these buttons to simulate different health check outcomes for demonstration purposes.
           </p>
           <div className="simulation-buttons">
             <button
               className="button button-success"
-              onClick={() => onCheck && onCheck('success')}
+              disabled={!endpoint.is_active}
+              onClick={() => void runCheck('success')}
             >
               Simulate Success
             </button>
             <button
               className="button button-danger"
-              onClick={() => onCheck && onCheck('failure')}
+              disabled={!endpoint.is_active}
+              onClick={() => void runCheck('failure')}
             >
               Simulate Failure
             </button>
@@ -572,7 +652,8 @@ function EndpointDetail({ endpoint, onClose, onCheck, onDelete, onEdit }: {
         </div>
 
         <div className="modal-actions">
-          <button className="button button-success" onClick={() => onCheck && onCheck()}>Check Now (Random)</button>
+          <button className="button button-success" disabled={!endpoint.is_active} onClick={() => void runCheck()}>Check Now (Random)</button>
+          <button className="button" onClick={() => void onToggle()}>{endpoint.is_active ? 'Disable endpoint' : 'Enable endpoint'}</button>
           <button className="button" onClick={onEdit}>Edit</button>
           <button className="button button-danger" onClick={onDelete}>Delete</button>
           <button className="button" onClick={onClose}>Close</button>

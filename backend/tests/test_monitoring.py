@@ -11,7 +11,7 @@ Tests for:
 import pytest
 from fastapi.testclient import TestClient
 from app.main import app
-from app.models import User, Endpoint, MonitoringResult, Incident
+from app.models import User, MonitoringResult, Incident
 from sqlalchemy.orm import Session
 
 
@@ -61,6 +61,47 @@ class TestTriggerCheck:
         data = response.json()
         assert data["status"] == "failure"
         assert data["error_message"] is not None
+
+    def test_trigger_check_rejects_unknown_forced_status(self, db_session: Session):
+        user = User(email="test@example.com", password_hash="hash", name="Test User")
+        db_session.add(user)
+        db_session.commit()
+
+        with TestClient(app) as client:
+            create_response = client.post("/api/endpoints/", json={
+                "name": "Test API",
+                "url": "https://api.example.com",
+            })
+            endpoint_id = create_response.json()["id"]
+            response = client.post(
+                f"/api/endpoints/{endpoint_id}/check?force_status=unknown"
+            )
+            history = client.get(f"/api/endpoints/{endpoint_id}/results")
+
+        assert response.status_code == 422
+        assert history.json() == []
+
+    def test_disabled_endpoint_cannot_be_checked(self, db_session: Session):
+        user = User(email="test@example.com", password_hash="hash", name="Test User")
+        db_session.add(user)
+        db_session.commit()
+
+        with TestClient(app) as client:
+            create_response = client.post("/api/endpoints/", json={
+                "name": "Test API",
+                "url": "https://api.example.com",
+            })
+            endpoint_id = create_response.json()["id"]
+            update_response = client.put(
+                f"/api/endpoints/{endpoint_id}", json={"is_active": False}
+            )
+            response = client.post(f"/api/endpoints/{endpoint_id}/check")
+            history = client.get(f"/api/endpoints/{endpoint_id}/results")
+
+        assert update_response.status_code == 200
+        assert response.status_code == 409
+        assert "disabled" in response.json()["detail"].lower()
+        assert history.json() == []
 
     def test_trigger_check_not_found(self):
         """Test checking a non-existent endpoint."""
@@ -112,6 +153,25 @@ class TestGetMonitoringResults:
         data = response.json()
         assert len(data) >= 1
 
+    @pytest.mark.parametrize(
+        "query",
+        ["limit=-1", "limit=0", "limit=101", "offset=-1", "offset=10001"],
+    )
+    def test_get_results_rejects_invalid_pagination(self, db_session: Session, query: str):
+        user = User(email="test@example.com", password_hash="hash", name="Test User")
+        db_session.add(user)
+        db_session.commit()
+
+        with TestClient(app) as client:
+            create_response = client.post("/api/endpoints/", json={
+                "name": "Test API",
+                "url": "https://api.example.com",
+            })
+            endpoint_id = create_response.json()["id"]
+            response = client.get(f"/api/endpoints/{endpoint_id}/results?{query}")
+
+        assert response.status_code == 422
+
 
 class TestGetStats:
     """Tests for GET /api/endpoints/{id}/stats"""
@@ -161,6 +221,30 @@ class TestGetStats:
         assert "success_rate" in data
         assert "uptime_percentage" in data
 
+    def test_zero_average_response_time_is_preserved(self, db_session: Session):
+        user = User(email="test@example.com", password_hash="hash", name="Test User")
+        db_session.add(user)
+        db_session.commit()
+
+        with TestClient(app) as client:
+            create_response = client.post("/api/endpoints/", json={
+                "name": "Test API",
+                "url": "https://api.example.com",
+            })
+            endpoint_id = create_response.json()["id"]
+
+            db_session.add(MonitoringResult(
+                endpoint_id=endpoint_id,
+                status="success",
+                status_code=200,
+                response_time=0.0,
+            ))
+            db_session.commit()
+            response = client.get(f"/api/endpoints/{endpoint_id}/stats")
+
+        assert response.status_code == 200
+        assert response.json()["avg_response_time"] == 0.0
+
 
 class TestIncidents:
     """Tests for incident management"""
@@ -180,6 +264,7 @@ class TestIncidents:
 
             # Force failure to ensure incident is created
             check_response = client.post(f"/api/endpoints/{endpoint_id}/check?force_status=failure")
+            assert check_response.status_code == 200
 
             # Check for incidents
             incidents_response = client.get(f"/api/endpoints/{endpoint_id}/incidents")

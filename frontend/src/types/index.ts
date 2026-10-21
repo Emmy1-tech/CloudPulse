@@ -23,6 +23,10 @@ export interface EndpointCreate {
   check_interval?: number;
 }
 
+export type EndpointUpdate = Partial<EndpointCreate> & {
+  is_active?: boolean;
+}
+
 export interface MonitoringResult {
   id: number;
   endpoint_id: number;

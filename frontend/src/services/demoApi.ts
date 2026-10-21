@@ -1,4 +1,4 @@
-import type { Endpoint, EndpointCreate, EndpointStats, Incident, MonitoringResult } from '../types'
+import type { Endpoint, EndpointCreate, EndpointStats, EndpointUpdate, Incident, MonitoringResult } from '../types'
 
 type DemoState = {
   endpoints: Endpoint[]
@@ -87,7 +87,7 @@ export const demoApi = {
 
   get: async (id: number): Promise<Endpoint> => clone(findEndpoint(readState(), id)),
 
-  update: async (id: number, data: Partial<EndpointCreate>): Promise<Endpoint> => {
+  update: async (id: number, data: EndpointUpdate): Promise<Endpoint> => {
     const state = readState()
     const endpoint = findEndpoint(state, id)
     Object.assign(endpoint, data, { updated_at: new Date().toISOString() })
@@ -105,7 +105,10 @@ export const demoApi = {
 
   check: async (id: number, forceStatus?: 'success' | 'failure'): Promise<MonitoringResult> => {
     const state = readState()
-    findEndpoint(state, id)
+    const endpoint = findEndpoint(state, id)
+    if (!endpoint.is_active) {
+      throw new Error('This endpoint is disabled. Enable it before running a check.')
+    }
     const status = forceStatus ?? (Math.random() > 0.12 ? 'success' : 'failure')
     const checkedAt = new Date().toISOString()
     const result: MonitoringResult = {
