@@ -1,0 +1,103 @@
+/* Dark, high-contrast workspace surfaces; the hero and sidebar already use this palette. */
+.app-shell,
+.main-panel,
+.app-container {
+  background: #0b1220;
+  color: #e6edf7;
+}
+.topbar {
+  background: rgba(13, 22, 37, .94);
+  border-bottom-color: #27364c;
+}
+.breadcrumb { color: #899bb4; }
+.breadcrumb strong { color: #eff4ff; }
+.breadcrumb-slash { color: #52647d; }
+.topbar-meta { color: #8fa1ba; }
+.topbar-version { color: #8fa1ba; }
+.topbar-version b { color: #9da9ff; }
+.app-container { color: #e6edf7; }
+.summary-card,
+.card,
+.endpoint-search,
+.endpoint-filter select,
+.form-group input,
+.form-group select,
+.modal,
+.endpoint-info,
+.stat {
+  color: #e6edf7;
+  background: #111e31;
+  border-color: #2a3a51;
+  box-shadow: none;
+}
+.summary-card { min-height: 132px; }
+.summary-label { color: #a0afc3; }
+.summary-value { color: #f2f6ff; }
+.summary-note { color: #879bb5; }
+.summary-card.active .summary-value { color: #82e2c3; }
+.summary-card.incidents .summary-value { color: #ffc77a; }
+.summary-card.checks .summary-value { color: #b7c0ff; }
+.section-heading h2,
+.incidents-section h2,
+.endpoints-section h2 {
+  color: #edf3fc;
+}
+.section-description { color: #94a6be; }
+.header .subtitle { color: #b6c6da; }
+.header .environment-pill { color: #b7f3e6; background: #153f43; border-color: #2c6364; }
+.header .alert-banner { color: #ffd8a0; background: #382919; border-color: #76502c; }
+.error-banner { color: #ffc5cb; background: #351f2b; border-color: #633344; }
+.error-banner .button { color: #ffe0e5; background: #502b3b; border-color: #754153; }
+.button:not(.button-primary) {
+  color: #c6d3e5;
+  background: #15243a;
+  border-color: #30445d;
+}
+.button:not(.button-primary):hover { color: #f6f9ff; background: #1c304b; }
+.button-primary {
+  color: #fff;
+  background: linear-gradient(135deg, #6b7bff, #4c5bd7);
+  border-color: #7281ff;
+}
+.button-danger { color: #ff9fac !important; background: #38222d !important; border-color: #603646 !important; }
+.button-success { color: #8ee8cd !important; background: #15362f !important; border-color: #285747 !important; }
+.incident-card { border-color: #2a3a51; border-left-color: #d96578; }
+.incident-card.incident-acknowledged { border-left-color: #e0ad5c; }
+.incident-card.incident-resolved { border-left-color: #3ab999; }
+.incident-card p { color: #91a3bb; }
+.incident-endpoint { color: #91a3bb !important; }
+.endpoint-card h3 { color: #ebf2ff; }
+.endpoint-card .url { color: #8fa2bc; }
+.endpoint-card .method { color: #b3bcff; background: #242c4a; }
+.endpoint-card:hover { border-color: #4b5d7b; box-shadow: 0 12px 30px rgba(0, 0, 0, .18); }
+.endpoint-card .actions { border-top-color: #2b3a51; }
+.endpoint-search { color: #8da0ba; }
+.endpoint-search input { color: #edf3fb; }
+.endpoint-search input::placeholder { color: #8193ad; }
+.endpoint-filter select { color: #d5e0ef; }
+.endpoint-filter select option { color: #e6edf7; background: #111e31; }
+.empty-state { color: #97a8bf; }
+.status-badge.status-success { color: #8be4c6; background: #163a31; }
+.status-badge.status-failure { color: #ff9fac; background: #3d222e; }
+.status-badge.status-warning { color: #f7ce85; background: #3c2e1b; }
+.modal { color: #edf3fb; border-color: #35465e; }
+.modal h2,
+.modal h3 { color: #f3f7ff; }
+.modal p,
+.modal label { color: #a2b2c8; }
+.form-group input,
+.form-group select { color: #edf3fb; }
+.form-group input::placeholder { color: #7e91aa; }
+.endpoint-info { background: #15243a; }
+.stat-label { color: #99aac0; }
+.stat-value { color: #ecf3ff; }
+.check-item { background: #15243a; }
+.app-footer { color: #8fa1b8; border-top-color: #29384e; }
+.app-shell .environment-card { background: #17253a; border-color: #2a3d55; }
+.app-shell .environment-card div span { color: #92a5be; }
+.app-shell .sidebar-profile { border-top-color: #2a394f; }
+.app-shell .sidebar-profile .profile-copy span { color: #93a4ba; }
+.loading { color: #e0e9f7; }
+@media (prefers-reduced-motion: reduce) {
+  .activity-bar { transition: none; }
+}

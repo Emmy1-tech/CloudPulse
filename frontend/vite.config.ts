@@ -6,10 +6,13 @@ export default defineConfig({
   base: process.env.GITHUB_ACTIONS === 'true' ? '/CloudPulse/' : '/',
   plugins: [react()],
   server: {
+    // Bind to loopback and fail loudly if the documented port is occupied.
+    host: '127.0.0.1',
     port: 3000,
+    strictPort: true,
     proxy: {
       '/api': {
-        target: 'http://localhost:8000',
+        target: 'http://127.0.0.1:8000',
         changeOrigin: true,
       }
     }
