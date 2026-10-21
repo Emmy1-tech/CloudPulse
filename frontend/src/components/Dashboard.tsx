@@ -3,6 +3,9 @@ import { endpointsApi } from '../services/api'
 import { Endpoint, Incident, EndpointCreate, MonitoringResult, EndpointStats } from '../types'
 import './Dashboard.css'
 import '../App.css'
+import TelemetryPanels from './TelemetryPanels'
+import './TelemetryPanels.css'
+import './DashboardPolish.css'
 
 export default function Dashboard() {
   const [endpoints, setEndpoints] = useState<Endpoint[]>([])
@@ -215,6 +218,8 @@ export default function Dashboard() {
           <div className="chart-empty">Run a check on an endpoint to build a response-time trend from recorded results.</div>
         )}
       </section>
+
+      <TelemetryPanels endpoints={endpoints} results={recentResults} />
 
       <div className="section-heading">
         <div>
