@@ -36,15 +36,15 @@ describe('TelemetryPanels', () => {
 
     expect(screen.getByText('No checks recorded in the last 6 hours')).toBeInTheDocument()
     expect(screen.getByText('No check logs yet')).toBeInTheDocument()
-    expect(screen.getByText('Sample check success').parentElement).toHaveTextContent('—')
-    expect(screen.getByText('Check error rate').parentElement).toHaveTextContent('—')
+    expect(screen.getByText('Sample check success').closest('.quality-row')).toHaveTextContent('—')
+    expect(screen.getByText('Check error rate').closest('.quality-row')).toHaveTextContent('—')
   })
 
   it('summarizes saved checks and identifies the endpoint in the event log', () => {
     render(<TelemetryPanels endpoints={[endpoint]} results={[makeResult(1, 'success', 5), makeResult(2, 'failure', 15)]} />)
 
     expect(screen.getByText('2 recorded checks in this window')).toBeInTheDocument()
-    expect(screen.getByText('50.0%')).toBeInTheDocument()
+    expect(screen.getAllByText('50.0%')).toHaveLength(2)
     expect(screen.getByText('Public API')).toBeInTheDocument()
     expect(screen.getByText('503')).toBeInTheDocument()
     expect(screen.getByText('820 ms')).toBeInTheDocument()
