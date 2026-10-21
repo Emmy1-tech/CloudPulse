@@ -165,3 +165,50 @@ jobs:
         run: npm run build
         env:
           VITE_DEMO_MODE: 'true'
+
+  windows-local-startup-smoke:
+    name: Windows startup and HTTP smoke
+    runs-on: windows-latest
+    timeout-minutes: 15
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v7
+
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+
+      - name: Set up Node.js 22
+        uses: actions/setup-node@v7
+        with:
+          node-version: "22"
+
+      - name: Launch CloudPulse and verify local HTTP endpoints
+        shell: powershell
+        run: |
+          Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass
+          .\\dev.ps1
+          $health = Invoke-RestMethod -Uri "http://127.0.0.1:8000/health" -TimeoutSec 5
+          if ($health.status -ne "healthy" -or $health.database -ne "ok") {
+            throw "Backend health assertion failed: $($health | ConvertTo-Json -Compress)"
+          }
+          $frontend = Invoke-WebRequest -Uri "http://127.0.0.1:3000/" -UseBasicParsing -TimeoutSec 5
+          if ($frontend.StatusCode -ne 200 -or $frontend.Content -notmatch "CloudPulse") {
+            throw "Frontend HTTP assertion failed: HTTP $($frontend.StatusCode)"
+          }
+          Write-Host "Verified frontend HTTP $($frontend.StatusCode) and backend database health."
+
+      - name: Stop smoke-test listeners
+        if: always()
+        shell: powershell
+        run: |
+          foreach ($port in @(3000, 8000)) {
+            $processIds = Get-NetTCPConnection -LocalPort $port -State Listen -ErrorAction SilentlyContinue |
+              Select-Object -ExpandProperty OwningProcess -Unique
+            foreach ($processId in $processIds) {
+              if ($processId -and $processId -ne $PID) {
+                Stop-Process -Id $processId -Force -ErrorAction SilentlyContinue
+              }
+            }
+          }
