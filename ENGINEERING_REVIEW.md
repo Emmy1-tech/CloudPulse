@@ -2,7 +2,7 @@
 
 **Review date:** 2026-10-20 (local time)
 **Reviewed default-branch baseline:** [`c0061b7`](https://github.com/Emmy1-tech/CloudPulse/commit/c0061b70d6ade18f4de6e64f01b40d11b01bb53c)
-**Follow-up work:** branch `fix/cloudpulse-reliability`, based on the current default branch. Local verification is complete; GitHub pull-request checks remain the source of truth for the proposed changes. This branch has not been deployed.
+**Follow-up work:** branch `fix/cloudpulse-reliability`, opened as [PR #28](https://github.com/Emmy1-tech/CloudPulse/pull/28). Local verification and [PR Actions run 39540429146](https://github.com/Emmy1-tech/CloudPulse/actions/runs/39540429146) completed successfully; the branch has not been merged or deployed.
 
 ## Executive summary
 
@@ -45,14 +45,15 @@ The current deployment URL is [https://emmy1-tech.github.io/CloudPulse/](https:/
 - Pages run [39536224114](https://github.com/Emmy1-tech/CloudPulse/actions/runs/39536224114), head `c0061b7`: build and deploy success.
 - Earlier CI run [39513063062](https://github.com/Emmy1-tech/CloudPulse/actions/runs/39513063062), head `7281717`: success with 41 backend tests, frontend tests/lint/build, dependency audits, and Docker smoke. Its paired Pages run failed for the setup reason above; this does not indicate backend CI failure.
 
-**Follow-up branch, verified locally before push:**
+**Follow-up branch, verified locally and in PR Actions run 39540429146:**
 
 - Backend: `pytest` — **49 passed**; `ruff check app tests` — passed; `pip check` — no broken requirements; `pip-audit` — no known vulnerabilities.
 - Frontend: Vitest — **13 passed**; ESLint — passed; TypeScript/Vite production builds — passed in API-connected and public-demo modes; `npm audit --audit-level=high` — zero vulnerabilities.
 - Vite/API integration: local frontend `/api` requests successfully reached FastAPI; endpoint create and disable succeeded; checking the disabled endpoint returned 409 and created no history.
 - GitHub Pages artifact: Actions-mode build emitted `/CloudPulse/assets/...` URLs.
 - Workflow validation: `actionlint` passed; updated CI, Compose, and Dependabot YAML parsed successfully.
-- **Docker Compose was not run locally** because the sandbox has no Docker CLI. The main-branch Docker smoke is green for baseline code; verification of the new Compose proxy path is pending the follow-up PR's Docker CI run.
+- **Docker Compose was not run locally** because the sandbox has no Docker CLI. PR CI's `docker-smoke` job passed, including backend health, frontend reachability, and the new Vite-to-backend `/api/endpoints/` proxy check.
+- GitHub Actions PR run: all five required jobs (`backend-tests`, `security-audit`, `frontend-security-audit`, `frontend-tests`, and `docker-smoke`) passed. `build-pages` and `deploy-pages` were skipped as designed for a pull request.
 - Black and mypy are installed in `requirements-dev.txt` but are not configured as repository CI gates. Exploratory checks report 10 files Black would reformat and 12 mypy diagnostics; this follow-up does not silently suppress or claim those optional checks pass.
 
 ## Remaining production and governance risks
