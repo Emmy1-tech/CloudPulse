@@ -37,11 +37,30 @@ The dashboard uses a single Axios client configured by VITE_API_URL. FastAPI end
 ## Prerequisites
 
 - Python 3.12
-- Node.js 20 and npm
+- Node.js 22 LTS and npm
 - Git
 - Docker Engine with Docker Compose (optional)
 
 ## Run locally
+
+### One-command Windows startup (PowerShell)
+
+From the repository root, run:
+
+```powershell
+Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass
+.\dev.ps1
+```
+
+The launcher checks for Python 3.12 and Node.js 22 or newer, creates the backend virtual environment when needed, installs missing dependencies, copies example environment files only when a `.env` file does not exist, initializes missing SQLite tables, and starts the backend and frontend in separate PowerShell windows. It waits for the backend's database-aware `/health` response and the frontend's HTTP 200 response before printing the URLs. Existing database files are not deleted, and existing `.env` files are never overwritten. A healthy CloudPulse server already on a required port is reused; a port occupied by another service produces a clear error instead of silently switching ports.
+
+Expected addresses:
+
+- Frontend: http://localhost:3000
+- Backend health: http://localhost:8000/health
+- API documentation: http://localhost:8000/docs
+
+Keep both server windows open while using the app. Press Ctrl+C in each window to stop its server. The dashboard's top-bar indicator checks the configured backend health endpoint and distinguishes connecting, connected, and unavailable states. If startup fails, read the first error in the server's PowerShell window; a browser's “connection refused” message by itself does not identify which process failed.
 
 ### Backend
 
@@ -88,7 +107,7 @@ Copy frontend/.env.example to frontend/.env if you need to change the API addres
 npm run dev
 ```
 
-Use the local URL printed by Vite. The API client reads VITE_API_URL; the default is http://localhost:8000.
+Open http://localhost:3000. Vite is configured to use port 3000 and fails clearly if that port is occupied instead of silently moving to another port. The API client reads VITE_API_URL; the checked-in example defaults to http://127.0.0.1:8000. Restart Vite after changing frontend/.env.
 
 ### Docker Compose demo
 
