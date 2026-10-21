@@ -10,10 +10,9 @@ LEARNING EXERCISE:
 - Add a test for updating with no fields (shouldn't change anything)
 """
 
-import pytest
 from fastapi.testclient import TestClient
 from app.main import app
-from app.models import User, Endpoint
+from app.models import User
 from sqlalchemy.orm import Session
 
 
@@ -200,11 +199,13 @@ class TestUpdateEndpoint:
             endpoint_id = create_response.json()["id"]
 
             response = client.put(f"/api/endpoints/{endpoint_id}", json={
-                "name": "Updated Name"
+                "name": "Updated Name",
+                "is_active": False,
             })
         assert response.status_code == 200
         data = response.json()
         assert data["name"] == "Updated Name"
+        assert data["is_active"] is False
         assert data["method"] == "GET"  # Unchanged
         assert data["check_interval"] == 60  # Unchanged
 

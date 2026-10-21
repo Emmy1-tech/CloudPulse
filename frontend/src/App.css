@@ -96,6 +96,7 @@ a { color: inherit; }
 .actions { display: flex; align-items: center; gap: 8px; margin-bottom: 0; }
 .button { display: inline-flex; justify-content: center; align-items: center; gap: 8px; min-height: 35px; padding: 8px 12px; color: #52637b; background: #fff; border: 1px solid #dfe6f1; border-radius: 8px; cursor: pointer; font-size: 10px; font-weight: 800; white-space: nowrap; }
 .button:hover { transform: translateY(-1px); box-shadow: 0 6px 15px #19295012; }
+.button:disabled { cursor: not-allowed; opacity: .5; transform: none; box-shadow: none; }
 .button-primary { color: #fff; background: linear-gradient(135deg, #6475fa, #4e5dd9); border-color: transparent; box-shadow: 0 5px 13px #5060df25; }
 .button-primary:hover { background: linear-gradient(135deg, #5365ec, #414fcb); }
 .button-danger { color: #bd4657; background: #fff7f8; border-color: #f7dfe3; }
