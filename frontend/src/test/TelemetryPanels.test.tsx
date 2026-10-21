@@ -45,7 +45,7 @@ describe('TelemetryPanels', () => {
 
     expect(screen.getByText('2 recorded checks in this window')).toBeInTheDocument()
     expect(screen.getAllByText('50.0%')).toHaveLength(2)
-    expect(screen.getByText('Public API')).toBeInTheDocument()
+    expect(screen.getAllByText('Public API')).toHaveLength(2)
     expect(screen.getByText('503')).toBeInTheDocument()
     expect(screen.getByText('820 ms')).toBeInTheDocument()
     expect(screen.getByText('Success')).toBeInTheDocument()
