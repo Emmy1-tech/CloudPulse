@@ -9,9 +9,11 @@ on:
 permissions:
   contents: read
 
+# Keep a deployment already in progress running. Cancelling an active Pages
+# deployment when another run is queued can leave the site unpublished.
 concurrency:
-  group: github-pages
-  cancel-in-progress: true
+  group: cloudpulse-pages-deploy
+  cancel-in-progress: false
 
 jobs:
   build:
